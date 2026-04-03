@@ -1,0 +1,106 @@
+# ------------------------- OS -------------------------
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ----------------------- VSCode -----------------------
+.vscode/
+*.code-workspace
+
+# ----------------------- Vivado -----------------------
+# Project (Auto Generated)
+*.cache/
+*.hw/
+*.runs/
+*.gen/
+*ip_user_files/
+*webtalk/
+
+*.xpr
+*.jou
+*.log
+*.str
+*.pb
+*.dcp
+*.ltx
+*.xdc.bak
+*.xsa
+*.analytics
+**/*_wrapper/
+
+# IP Repository
+ip_repo/
+
+# Block Design
+**/*.srcs/**/bd/
+
+# --------------- STM32CubeIDE / Eclipse ---------------
+.metadata/
+.settings/
+.project
+.cproject
+.mxproject
+*.launch
+
+**/_ide/
+
+**/LICENSE.txt
+
+# ---------- STM32CubeMX Auto Generated Files ----------
+**/*stm32f4*
+
+**/syscalls.c
+**/sysmem.c
+
+**/*cmsis*
+**/core_cm*
+**/core_sc*
+**/tz_context.h
+
+**/cachel1_arm7.h
+**/_*arm*
+
+# ------------- XSIM / Simulation Outputs -------------
+.xsim.dir/
+*.sim/
+*.wdb
+*.vcd
+*.prj
+*.rlx
+*.sdb
+glbl.v
+*.sprj
+
+*.bat
+*.obj
+*.exe
+*.ini
+
+# ---------- Build Artifacts (Binary Outputs) ----------
+*.bin
+*.mcs
+*.elf
+*.bit
+*.o
+*.d
+*.map
+*.hex
+*.lst
+*.su
+*.ld
+
+Debug/
+Release/
+build/
+
+# ----------------- Temporary / Backup -----------------
+*.swp
+*.swo
+*.tmp
+*~
+
+# --------------------- Documents ---------------------
+*.hwp
+*.pdf
+*.pptx
+*.drawio
