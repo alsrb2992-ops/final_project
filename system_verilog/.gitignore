@@ -27,8 +27,6 @@ Desktop.ini
 *.analytics
 **/*_wrapper/
 
-# IP Repository
-ip_repo/
 
 # Block Design
 **/*.srcs/**/bd/
