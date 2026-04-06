@@ -7,6 +7,10 @@ Desktop.ini
 .vscode/
 *.code-workspace
 
+# ----------------------- Python -----------------------
+__pycache__/
+*.pyc
+
 # ----------------------- Vivado -----------------------
 # Project (Auto Generated)
 *.cache/
