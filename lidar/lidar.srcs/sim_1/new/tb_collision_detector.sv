@@ -1,193 +1,295 @@
 // ============================================================
-// tb_collision_detector.sv
-// collision_detector module standalone testbench
+// tb_collision_detector_random.sv
+// collision_detector + round_detector random testbench
+// 1000 test with scoreboard + reference model
+// each test: randomly choose between
+//   - pure random points
+//   - warn->brake transition scenario
 // ============================================================
 `timescale 1ns / 1ps
 
-module tb_collision_detector ();
+module tb_collision_detector;
 
-    localparam CLK_PERIOD = 20;  // 50MHz
+    localparam CLK_PERIOD = 20;
+    localparam NUM_TESTS = 1000;
+    localparam FRONT_ANGLE_DEG = 9'd20;
+    localparam BRAKE_DIST_MM = 14'd500;
+    localparam WARN_DIST_MM = BRAKE_DIST_MM * 2;  // 1000mm
 
-    logic        clk;
-    logic        rst_n;
-    logic [13:0] distance;
-    logic [ 8:0] angle;
-    logic        data_valid;
-    logic        pkt_done;
-    logic        brake_signal;
-    logic        warning_signal;
+    logic          clk;
+    logic          rst_n;
+    logic   [13:0] distance;
+    logic   [ 8:0] angle;
+    logic          data_valid;
+    logic          pkt_start;
+    logic          ct_start_bit;
+    logic          brake_signal;
+    logic          warning_signal;
+    logic          round_done;
 
+    // ============================================================
+    // Scoreboard
+    // ============================================================
+    integer        total_tests;
+    integer        pass_count;
+    integer        fail_count;
+    integer        scenario_count;  // warn->brake 시나리오 실행 횟수
+
+    task sb_init;
+        total_tests    = 0;
+        pass_count     = 0;
+        fail_count     = 0;
+        scenario_count = 0;
+    endtask
+
+    task sb_check(input integer test_num, input string test_desc,
+                  input logic actual, input logic expected,
+                  input string signal_name);
+        total_tests = total_tests + 1;
+        if (actual === expected) begin
+            pass_count = pass_count + 1;
+        end else begin
+            fail_count = fail_count + 1;
+            $display("[FAIL] Test%0d (%s) | %s = %b (expected: %b)", test_num,
+                     test_desc, signal_name, actual, expected);
+        end
+    endtask
+
+    task sb_report;
+        $display("========================================");
+        $display(" SCOREBOARD REPORT");
+        $display("  Total checks   : %0d", total_tests);
+        $display("  PASS           : %0d", pass_count);
+        $display("  FAIL           : %0d", fail_count);
+        $display("  Warn->Brake    : %0d times", scenario_count);
+        if (fail_count == 0) $display("  Result: ALL PASS");
+        else $display("  Result: %0d FAILED", fail_count);
+        $display("========================================");
+    endtask
+
+    // ============================================================
+    // Reference Model
+    // ============================================================
+    logic ref_brake;
+    logic ref_warning;
+    logic ref_danger_in_round;
+    logic ref_warn_in_round;
+
+    task ref_init;
+        ref_brake           = 1'b0;
+        ref_warning         = 1'b0;
+        ref_danger_in_round = 1'b0;
+        ref_warn_in_round   = 1'b0;
+    endtask
+
+    task ref_send_point(input logic [8:0] ang_in, input logic [13:0] dist_in);
+        logic in_front;
+        in_front = (ang_in <= FRONT_ANGLE_DEG) ||
+                   (ang_in >= (9'd360 - FRONT_ANGLE_DEG));
+
+        if (in_front) begin
+            if (dist_in <= BRAKE_DIST_MM && dist_in != 14'd0) begin
+                ref_brake           = 1'b1;
+                ref_warning         = 1'b1;
+                ref_danger_in_round = 1'b1;
+                ref_warn_in_round   = 1'b1;
+            end else if (dist_in <= WARN_DIST_MM && dist_in != 14'd0) begin
+                ref_warning       = 1'b1;
+                ref_warn_in_round = 1'b1;
+            end
+        end
+    endtask
+
+    task ref_round_done;
+        if (!ref_danger_in_round) ref_brake = 1'b0;
+        if (!ref_warn_in_round) ref_warning = 1'b0;
+        ref_danger_in_round = 1'b0;
+        ref_warn_in_round   = 1'b0;
+    endtask
+
+    // ============================================================
     // DUT
+    // ============================================================
+    round_detector u_round (
+        .pkt_start   (pkt_start),
+        .ct_start_bit(ct_start_bit),
+        .round_done  (round_done)
+    );
+
     collision_detector #(
-        .FRONT_ANGLE_DEG(9'd20),
-        .BRAKE_DIST_MM  (14'd500)
+        .FRONT_ANGLE_DEG(FRONT_ANGLE_DEG),
+        .BRAKE_DIST_MM  (BRAKE_DIST_MM)
     ) dut (
         .clk           (clk),
         .rst_n         (rst_n),
         .distance      (distance),
         .angle         (angle),
         .data_valid    (data_valid),
-        .pkt_done      (pkt_done),
+        .round_done    (round_done),
         .brake_signal  (brake_signal),
         .warning_signal(warning_signal)
     );
 
     always #(CLK_PERIOD / 2) clk = ~clk;
 
-    // ----------------------------------------------------------
-    // 포인트 1개 입력 태스크
-    // ----------------------------------------------------------
-    task send_point(input logic [8:0] ang, input logic [13:0] distan);
+    // ============================================================
+    // Tasks
+    // ============================================================
+    task send_point(input logic [8:0] ang_in, input logic [13:0] dist_in);
+        @(negedge clk);
+        angle      = ang_in;
+        distance   = dist_in;
+        data_valid = 1'b1;
         @(posedge clk);
-        angle      <= ang;
-        distance   <= distan;
-        data_valid <= 1'b1;
-        @(posedge clk);
-        data_valid <= 1'b0;
+        #1;
+        data_valid = 1'b0;
     endtask
 
-    // 패킷 완료 태스크
-    task done_packet();
+    task send_round_done;
         @(posedge clk);
-        pkt_done <= 1'b1;
+        pkt_start    = 1'b1;
+        ct_start_bit = 1'b1;
         @(posedge clk);
-        pkt_done <= 1'b0;
-        @(posedge clk);  // 결과 반영 대기
-    endtask
-
-    // 결과 체크 태스크
-    task check(input string test_name, input logic exp_brake,
-               input logic exp_warn);
-        $display("--- %s ---", test_name);
-        $display("  brake_signal   = %b (expected: %b) %s", brake_signal,
-                 exp_brake, (brake_signal === exp_brake) ? "PASS" : "FAIL");
-        $display("  warning_signal = %b (expected: %b) %s", warning_signal,
-                 exp_warn, (warning_signal === exp_warn) ? "PASS" : "FAIL");
+        pkt_start    = 1'b0;
+        ct_start_bit = 1'b0;
+        @(posedge clk);
     endtask
 
     // ----------------------------------------------------------
+    // 포인트 1개 전송 + 레퍼런스 동기화 + 즉시 체크
+    // ----------------------------------------------------------
+    task do_point(input integer t_num, input logic [8:0] ang_in,
+                  input logic [13:0] dist_in);
+        string desc;
+        ref_send_point(ang_in, dist_in);
+        send_point(ang_in, dist_in);
+        @(posedge clk);
+        $sformat(desc, "T%0d ang=%0d dist=%0d", t_num, ang_in, dist_in);
+        sb_check(t_num, desc, brake_signal, ref_brake, "brake  ");
+        sb_check(t_num, desc, warning_signal, ref_warning, "warning");
+    endtask
+
+    // ----------------------------------------------------------
+    // round_done 전송 + 레퍼런스 동기화 + 해제 체크
+    // ----------------------------------------------------------
+    task do_round_done(input integer t_num, input string phase);
+        string desc;
+        ref_round_done();
+        send_round_done();
+        $sformat(desc, "T%0d %s after_round", t_num, phase);
+        sb_check(t_num, desc, brake_signal, ref_brake, "brake  ");
+        sb_check(t_num, desc, warning_signal, ref_warning, "warning");
+    endtask
+
+    // ============================================================
+    // Variables
+    // ============================================================
+    integer        j;
+    integer        test_num;
+    integer        num_points;
+    logic   [ 8:0] rand_angle;
+    logic   [13:0] rand_dist;
+    logic   [13:0] warn_dist;
+    logic   [13:0] brake_dist;
+    integer        scenario_type;  // 0=random, 1=warn->brake
+
+    // ============================================================
     // Test
-    // ----------------------------------------------------------
+    // ============================================================
     initial begin
-        clk        = 0;
-        rst_n      = 0;
-        distance   = 0;
-        angle      = 0;
-        data_valid = 0;
-        pkt_done   = 0;
+        clk          = 0;
+        rst_n        = 0;
+        distance     = 0;
+        angle        = 0;
+        data_valid   = 0;
+        pkt_start    = 0;
+        ct_start_bit = 0;
+
+        sb_init();
+        ref_init();
 
         repeat (5) @(posedge clk);
         rst_n = 1;
         repeat (5) @(posedge clk);
 
         $display("========================================");
-        $display(" collision_detector testbench start");
+        $display(" Mixed Random Test: %0d rounds", NUM_TESTS);
+        $display("  FRONT_ANGLE_DEG = %0d", FRONT_ANGLE_DEG);
+        $display("  BRAKE_DIST_MM   = %0d", BRAKE_DIST_MM);
+        $display("  WARN_DIST_MM    = %0d", WARN_DIST_MM);
+        $display("  Scenario mix: ~30%% warn->brake");
         $display("========================================");
 
-        // ------------------------------------------------
-        // Test 1: Front zone, distance < BRAKE_DIST
-        // angle=5deg (front zone), dist=300mm -> brake=1
-        // ------------------------------------------------
-        send_point(9'd5, 14'd300);
-        done_packet();
-        check("Test1: Front(5deg) Dist=300mm", 1'b1, 1'b1);
+        for (test_num = 1; test_num <= NUM_TESTS; test_num++) begin
 
-        // ------------------------------------------------
-        // Test 2: Front zone, BRAKE_DIST < dist < WARN_DIST
-        // angle=5deg, dist=800mm -> warn=1 brake=0
-        // ------------------------------------------------
-        send_point(9'd5, 14'd800);
-        done_packet();
-        check("Test2: Front(5deg) Dist=800mm", 1'b0, 1'b1);
+            // 30% 확률로 warn->brake 시나리오 선택
+            scenario_type = ($urandom % 10 < 3) ? 1 : 0;
 
-        // ------------------------------------------------
-        // Test 3: Front zone, dist > WARN_DIST
-        // angle=5deg, dist=1200mm -> brake=0 warn=0
-        // ------------------------------------------------
-        send_point(9'd5, 14'd1200);
-        done_packet();
-        check("Test3: Front(5deg) Dist=1200mm", 1'b0, 1'b0);
+            if (scenario_type == 1) begin
+                // ============================================
+                // Scenario: warning -> brake
+                // 회전1: 전방 warn 거리 → warning=1 brake=0
+                //        round_done 1번째
+                // 회전2: warn 포인트 먼저 → warning=1 brake=0
+                //        brake 포인트 수신 → brake=1 즉시
+                //        (round_done 2번째 오기 전!)
+                //        round_done 2번째 → brake 유지
+                // ============================================
+                scenario_count = scenario_count + 1;
 
-        // ------------------------------------------------
-        // Test 4: Outside front zone
-        // angle=90deg, dist=300mm -> brake=0 warn=0
-        // ------------------------------------------------
-        send_point(9'd90, 14'd300);
-        done_packet();
-        check("Test4: Side(90deg) Dist=300mm", 1'b0, 1'b0);
+                // warn 거리: BRAKE+1 ~ WARN 사이 랜덤
+                warn_dist  = BRAKE_DIST_MM + 1
+                             + ($urandom % (WARN_DIST_MM - BRAKE_DIST_MM));
+                // brake 거리: 1 ~ BRAKE 사이 랜덤
+                brake_dist = 1 + ($urandom % BRAKE_DIST_MM);
 
-        // ------------------------------------------------
-        // Test 5: Rear zone
-        // angle=180deg, dist=300mm -> brake=0 warn=0
-        // ------------------------------------------------
-        send_point(9'd180, 14'd300);
-        done_packet();
-        check("Test5: Rear(180deg) Dist=300mm", 1'b0, 1'b0);
+                // --- 회전 1: warn 포인트만 ---
+                do_point(test_num, 9'd5, warn_dist);
+                do_round_done(test_num, "S_round1");
 
-        // ------------------------------------------------
-        // Test 6: Front zone boundary (exactly 20deg)
-        // angle=20deg, dist=300mm -> brake=1
-        // ------------------------------------------------
-        send_point(9'd20, 14'd300);
-        done_packet();
-        check("Test6: Front boundary(20deg) Dist=300mm", 1'b1, 1'b1);
+                // --- 회전 2: warn 먼저, 그 다음 brake ---
+                // warn 포인트
+                do_point(test_num, 9'd5, warn_dist);
 
-        // ------------------------------------------------
-        // Test 7: Just outside front zone (21deg)
-        // angle=21deg, dist=300mm -> brake=0
-        // ------------------------------------------------
-        send_point(9'd21, 14'd300);
-        done_packet();
-        check("Test7: Outside boundary(21deg) Dist=300mm", 1'b0, 1'b0);
+                // brake 포인트 (round_done 2번째 전!)
+                do_point(test_num, 9'd5, brake_dist);
 
-        // ------------------------------------------------
-        // Test 8: Rear front zone (340deg)
-        // angle=340deg, dist=300mm -> brake=1
-        // ------------------------------------------------
-        send_point(9'd340, 14'd300);
-        done_packet();
-        check("Test8: Rear-front(340deg) Dist=300mm", 1'b1, 1'b1);
+                // round_done 2번째
+                do_round_done(test_num, "S_round2");
 
-        // ------------------------------------------------
-        // Test 9: Distance = 0 (invalid point)
-        // angle=5deg, dist=0 -> brake=0
-        // ------------------------------------------------
-        send_point(9'd5, 14'd0);
-        done_packet();
-        check("Test9: Front(5deg) Dist=0 (invalid)", 1'b0, 1'b0);
+                // --- 정리: 안전 거리로 해제 ---
+                do_point(test_num, 9'd5, 14'd1500);
+                do_round_done(test_num, "S_cleanup");
 
-        // ------------------------------------------------
-        // Test 10: Multiple points in one packet
-        // point1: side 90deg 300mm (no danger)
-        // point2: front 5deg 300mm (danger)
-        // -> brake=1 expected
-        // ------------------------------------------------
-        send_point(9'd90, 14'd300);  // side, safe
-        send_point(9'd5, 14'd300);  // front, danger
-        done_packet();
-        check("Test10: Multi-point (side safe + front danger)", 1'b1, 1'b1);
+            end else begin
+                // ============================================
+                // Pure random test
+                // ============================================
+                num_points = ($urandom % 10) + 1;
 
-        // ------------------------------------------------
-        // Test 11: Multiple points, all safe
-        // point1: front 5deg 1200mm
-        // point2: front 10deg 1200mm
-        // -> brake=0 warn=0
-        // ------------------------------------------------
-        send_point(9'd5, 14'd1200);
-        send_point(9'd10, 14'd1200);
-        done_packet();
-        check("Test11: Multi-point all safe", 1'b0, 1'b0);
+                for (j = 0; j < num_points; j++) begin
+                    rand_angle = $urandom % 360;
+                    rand_dist  = $urandom % 2001;
+                    do_point(test_num, rand_angle, rand_dist);
+                end
 
-        $display("========================================");
-        $display(" Simulation Done");
-        $display("========================================");
+                do_round_done(test_num, "R_round");
+            end
+
+            // 100회마다 진행상황 출력
+            if (test_num % 100 == 0)
+                $display(
+                    "  Progress: %0d/%0d | PASS=%0d FAIL=%0d | Scenario=%0d",
+                    test_num,
+                    NUM_TESTS,
+                    pass_count,
+                    fail_count,
+                    scenario_count
+                );
+        end
+
+        sb_report();
         $finish;
-    end
-
-    // 모니터링
-    initial begin
-        $monitor("t=%0t | angle=%0d dist=%0d | brake=%b warn=%b", $time, angle,
-                 distance, brake_signal, warning_signal);
     end
 
 endmodule

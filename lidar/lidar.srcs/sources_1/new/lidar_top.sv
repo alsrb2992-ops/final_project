@@ -22,7 +22,7 @@
 //      brake_output           ← GPIO 제동 출력
 // ============================================================
 module lidar_top #(
-    parameter CLK_FREQ        = 50_000_000,
+    parameter CLK_FREQ        = 125_000_000,
     parameter BAUD_RATE       = 128_000,
     parameter FRONT_ANGLE_DEG = 9'd20,
     parameter BRAKE_DIST_MM   = 14'd500,
@@ -79,6 +79,9 @@ module lidar_top #(
     // collision_detector → brake_output
     logic        brake_sig;
     logic        warn_sig;
+
+    // round_detector → collision_detector
+    logic        round_done_sig;
 
     // ============================================================
     // 모듈 인스턴스
@@ -162,7 +165,14 @@ module lidar_top #(
         .filtered_valid(filt_valid)
     );
 
-    // 7. 충돌 판단
+    // 7. 1회전 완료 감지 (CL)
+    round_detector u_round (
+        .pkt_start   (sync_pkt_start),
+        .ct_start_bit(parser_ct_start),
+        .round_done  (round_done_sig)
+    );
+
+    // 8. 충돌 판단
     collision_detector #(
         .FRONT_ANGLE_DEG(FRONT_ANGLE_DEG),
         .BRAKE_DIST_MM  (BRAKE_DIST_MM)
@@ -172,12 +182,12 @@ module lidar_top #(
         .distance      (filt_dist),
         .angle         (filt_angle),
         .data_valid    (filt_valid),
-        .pkt_done      (parser_pkt_done),  // 추가
+        .round_done    (round_done_sig),
         .brake_signal  (brake_sig),
         .warning_signal(warn_sig)
     );
 
-    // 8. 제동 GPIO 출력
+    // 9. 제동 GPIO 출력
     brake_output #(
         .CLK_FREQ(CLK_FREQ),
         .HOLD_MS (HOLD_MS)
