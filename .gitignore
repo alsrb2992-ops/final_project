@@ -7,6 +7,10 @@ Desktop.ini
 .vscode/
 *.code-workspace
 
+# ----------------------- Python -----------------------
+__pycache__/
+*.pyc
+
 # ----------------------- Vivado -----------------------
 # Project (Auto Generated)
 *.cache/
@@ -16,7 +20,6 @@ Desktop.ini
 *ip_user_files/
 *webtalk/
 
-*.xpr
 *.jou
 *.log
 *.str
@@ -27,9 +30,6 @@ Desktop.ini
 *.xsa
 *.analytics
 **/*_wrapper/
-
-# IP Repository
-ip_repo/
 
 # Block Design
 **/*.srcs/**/bd/
