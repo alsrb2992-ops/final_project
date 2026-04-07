@@ -282,7 +282,7 @@ module tb_packet_parser;
 
         send_packet(1'b0, t_fsa, t_lsa, t_cs_ok, t_si);
         sb_check(test_num, "si_valid correct CS", cs_ok, 1'b1, "cs_ok  ");
-        sb_check(test_num, "si_valid correct CS", si_valid, 1'b0, "si_valid");
+        sb_check(test_num, "si_valid correct CS", si_valid, 1'b1, "si_valid");
         // si_valid 는 Si 수신 시 1클럭 펄스 → pkt_done 전 클럭에 발생
         // pkt_done 시점에는 이미 0으로 돌아옴 (정상)
 

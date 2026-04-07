@@ -22,10 +22,10 @@
 //      brake_output           ← GPIO 제동 출력
 // ============================================================
 module lidar_top #(
-    parameter CLK_FREQ        = 50_000_000,
+    parameter CLK_FREQ        = 125_000_000,
     parameter BAUD_RATE       = 128_000,
-    parameter FRONT_ANGLE_DEG = 9'd20,
-    parameter BRAKE_DIST_MM   = 14'd500,
+    parameter FRONT_ANGLE_DEG = 9'd60,
+    parameter BRAKE_DIST_MM   = 14'd300,
     parameter HOLD_MS         = 32'd200
 ) (
     input logic clk,
