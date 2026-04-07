@@ -14,8 +14,8 @@ module tb_lidar_top;
     localparam SIM_BAUD_RATE = 6_250_000;
     localparam BIT_PERIOD = CLK_FREQ / SIM_BAUD_RATE;  // 20 클럭
 
-    localparam FRONT_ANGLE_DEG = 9'd20;
-    localparam BRAKE_DIST_MM = 14'd500;
+    localparam FRONT_ANGLE_DEG = 9'd20; // warning/brake 각도 범위 ============
+    localparam BRAKE_DIST_MM = 14'd500; // 제동 거리 임계값 ===============
     localparam WARN_DIST_MM = BRAKE_DIST_MM * 2;  // 1000mm
 
     // 유효 거리 범위

@@ -22,7 +22,7 @@
 //      brake_output           ← GPIO 제동 출력
 // ============================================================
 module lidar_top #(
-    parameter CLK_FREQ        = 125_000_000,
+    parameter CLK_FREQ        = 50_000_000,
     parameter BAUD_RATE       = 128_000,
     parameter FRONT_ANGLE_DEG = 9'd20,
     parameter BRAKE_DIST_MM   = 14'd500,
@@ -61,6 +61,7 @@ module lidar_top #(
     logic [15:0] parser_si_raw;
     logic        parser_si_valid;
     logic        parser_pkt_done;
+    logic        parser_cs_ok;  // CS 검증 결과
 
     // distance_calc → interference_filter
     logic [13:0] dist_out;
@@ -124,7 +125,8 @@ module lidar_top #(
         .cs_rx       (parser_cs),
         .si_raw      (parser_si_raw),
         .si_valid    (parser_si_valid),
-        .pkt_done    (parser_pkt_done)
+        .pkt_done    (parser_pkt_done),
+        .cs_ok       (parser_cs_ok)
     );
 
     // 4. 거리 계산
@@ -152,6 +154,7 @@ module lidar_top #(
     );
 
     // 6. 간섭 필터링
+    // CS 불일치 패킷은 si_valid 차단하여 데이터 통과 막음
     // dist_valid 와 angle_valid 가 같은 Si에서 동시에 나옴
     interference_filter u_filter (
         .clk           (clk),
@@ -159,7 +162,7 @@ module lidar_top #(
         .distance_in   (dist_out),
         .is_flag       (dist_is),
         .angle_in      (angle_out),
-        .data_valid    (dist_valid),
+        .data_valid    (dist_valid & parser_cs_ok),
         .distance_out  (filt_dist),
         .angle_out     (filt_angle),
         .filtered_valid(filt_valid)
