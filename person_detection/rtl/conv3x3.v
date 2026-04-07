@@ -1,7 +1,7 @@
 // =============================================================================
 // conv3x3.v
 // -----------------------------------------------------------------------------
-// 3×3 Convolution (C_out 시분할)
+// 3×3 Convolution (C_out 시분할, 커널 9개 병렬 MAC + 2단 파이프라인)
 //
 // Q4.12 데이터 경로:
 //   가중치/활성화: signed 16bit
@@ -10,7 +10,8 @@
 //
 // Conv1: C_IN=3, C_OUT=8, IMG_W_IN=128, pad=0
 //   입력 128×128×3, 출력 126×126×8
-//   1픽셀당 사이클: 9 × C_IN × C_OUT = 216 (+ IDLE/OUTPUT = 218)
+//   1픽셀당 사이클: C_IN × C_OUT × 2(파이프라인) = 48
+//   (기존 216 대비 4.5배 향상)
 //
 // [수정사항]
 //   1. Q4.4 → Q4.12 (8bit → 16bit)
@@ -19,6 +20,10 @@
 //   4. IMG_W_IN 기본값 128
 //   5. 누산기 40bit
 //   6. bias 16bit
+//   7. 커널 9개 병렬 MAC → kidx 루프 제거, DSP 9개 사용
+//   8. 2단 파이프라인 레지스터 삽입 → 타이밍 위반 해결
+//      Stage1: 9개 곱셈 → 레지스터
+//      Stage2: 덧셈 트리 → acc 누산
 // =============================================================================
 
 module conv3x3 #(
@@ -39,7 +44,6 @@ module conv3x3 #(
 
     // ── 가중치 ROM ────────────────────────────────────────────────────
     localparam WEIGHT_DEPTH = C_OUT * C_IN * 9;
-    // reg signed [15:0] weight_rom [0:WEIGHT_DEPTH-1];
     (* rom_style = "block" *) reg signed [15:0] weight_rom [0:WEIGHT_DEPTH-1];
     initial begin
         if (WEIGHT_FILE != "")
@@ -100,33 +104,59 @@ module conv3x3 #(
 
     wire all_win_valid = &win_valid;
 
-    // ── FSM ───────────────────────────────────────────────────────────
+    // ── FSM 카운터 ────────────────────────────────────────────────────
     localparam ST_IDLE    = 2'd0;
-    localparam ST_COMPUTE = 2'd1;
-    localparam ST_OUTPUT  = 2'd2;
+    localparam ST_STAGE1  = 2'd1;  // 곱셈 단계
+    localparam ST_STAGE2  = 2'd2;  // 덧셈 트리 + acc 누산 단계
+    localparam ST_OUTPUT  = 2'd3;
 
     reg [1:0] state;
     reg [$clog2(C_OUT)-1:0] oct;
     reg [$clog2(C_IN)-1:0]  ict;
-    reg [3:0]               kidx;
 
     reg signed [39:0] acc;
     reg signed [15:0] out_buf [0:C_OUT-1];
 
-    // 가중치 주소
-    wire [$clog2(WEIGHT_DEPTH)-1:0] w_addr = oct * (C_IN * 9) + ict * 9 + kidx;
-    wire signed [15:0] cur_pixel  = $signed(win_flat[ict][kidx*16 +: 16]);
-    wire signed [15:0] cur_weight = weight_rom[w_addr];
+    // ── Stage 1: 9개 곱셈 (조합 논리) ───────────────────────────────
+    wire [$clog2(WEIGHT_DEPTH)-1:0] w_base = oct * (C_IN * 9) + ict * 9;
 
-    // 곱셈 — DSP48E1 강제 사용
-    (* use_dsp = "yes" *)
-    wire signed [31:0] product = cur_pixel * cur_weight;
+    wire signed [31:0] prod_comb [0:8];
+    wire signed [39:0] prod_scaled_comb [0:8];
 
-    // Q8.24 → Q4.12: >>12
-    wire signed [39:0] prod_scaled = {{20{product[31]}}, product[31:12]};
+    genvar ki;
+    generate
+        for (ki = 0; ki < 9; ki = ki + 1) begin : KMAC
+            (* use_dsp = "yes" *)
+            assign prod_comb[ki] = $signed(win_flat[ict][ki*16 +: 16])
+                                 * weight_rom[w_base + ki];
+            assign prod_scaled_comb[ki] = {{20{prod_comb[ki][31]}},
+                                            prod_comb[ki][31:12]};
+        end
+    endgenerate
 
-    // acc_next: 버그 수정 핵심
-    wire signed [39:0] acc_next = acc + prod_scaled;
+    // ── Stage 1 → Stage 2 파이프라인 레지스터 ────────────────────────
+    // 곱셈 결과 9개를 레지스터로 래치 → 덧셈 트리로 전달
+    reg signed [39:0] prod_reg [0:8];
+
+    integer ri;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            for (ri = 0; ri < 9; ri = ri + 1)
+                prod_reg[ri] <= 40'sd0;
+        end
+        else if (state == ST_STAGE1) begin
+            for (ri = 0; ri < 9; ri = ri + 1)
+                prod_reg[ri] <= prod_scaled_comb[ri];
+        end
+    end
+
+    // ── Stage 2: 덧셈 트리 (레지스터된 곱셈 결과 합산) ──────────────
+    wire signed [39:0] kernel_sum =
+        prod_reg[0] + prod_reg[1] + prod_reg[2] +
+        prod_reg[3] + prod_reg[4] + prod_reg[5] +
+        prod_reg[6] + prod_reg[7] + prod_reg[8];
+
+    wire signed [39:0] acc_next = acc + kernel_sum;
 
     // ReLU + 클리핑
     wire signed [15:0] relu_out;
@@ -141,7 +171,6 @@ module conv3x3 #(
             state       <= ST_IDLE;
             oct         <= 0;
             ict         <= 0;
-            kidx        <= 0;
             acc         <= 0;
             out_valid   <= 1'b0;
             feature_out <= 0;
@@ -154,38 +183,41 @@ module conv3x3 #(
             case (state)
                 ST_IDLE: begin
                     if (all_win_valid) begin
-                        state <= ST_COMPUTE;
+                        state <= ST_STAGE1;
                         oct   <= 0;
                         ict   <= 0;
-                        kidx  <= 0;
                         acc   <= {{24{bias_rom[0][15]}}, bias_rom[0]};
                     end
                 end
 
-                ST_COMPUTE: begin
+                ST_STAGE1: begin
+                    // 이 사이클에 곱셈 수행 → prod_reg에 래치됨
+                    // 다음 사이클(ST_STAGE2)에서 덧셈 트리 수행
+                    state <= ST_STAGE2;
+                end
+
+                ST_STAGE2: begin
+                    // prod_reg 값으로 덧셈 트리 → acc 누산
                     acc <= acc_next;
 
-                    if (kidx == 4'd8) begin
-                        kidx <= 0;
-                        if (ict == C_IN - 1) begin
-                            // 모든 입력 채널 완료 → ReLU (acc_next 사용)
-                            out_buf[oct] <= relu_out;
-                            ict <= 0;
+                    if (ict == C_IN - 1) begin
+                        // 모든 입력 채널 완료 → ReLU
+                        out_buf[oct] <= relu_out;
+                        ict <= 0;
 
-                            if (oct == C_OUT - 1) begin
-                                state <= ST_OUTPUT;
-                            end
-                            else begin
-                                oct <= oct + 1;
-                                acc <= {{24{bias_rom[oct+1][15]}}, bias_rom[oct+1]};
-                            end
+                        if (oct == C_OUT - 1) begin
+                            state <= ST_OUTPUT;
                         end
                         else begin
-                            ict <= ict + 1;
+                            oct   <= oct + 1;
+                            acc   <= {{24{bias_rom[oct+1][15]}},
+                                       bias_rom[oct+1]};
+                            state <= ST_STAGE1;
                         end
                     end
                     else begin
-                        kidx <= kidx + 1;
+                        ict   <= ict + 1;
+                        state <= ST_STAGE1;
                     end
                 end
 
