@@ -1,73 +1,111 @@
-// ============================================================
-// angle_calc.sv
-// FSA, LSA, LSN 으로 각 Si 포인트의 각도 계산 (정수부만)
-//
-// 1단계:
-//   Angle_FSA = (FSA >> 1) >> 6  → 정수 각도
-//   Angle_LSA = (LSA >> 1) >> 6
-//   중간 각도 = FSA + diff/(LSN-1) * i  (선형 보간)
-//
-// 충돌방지 목적이므로 정수 각도만 사용
-// ============================================================
 module angle_calc (
-    input  logic        clk,
-    input  logic        rst_n,
+    input logic clk,
+    input logic rst_n,
 
-    // packet_parser 로부터
-    input  logic [15:0] fsa_raw,
-    input  logic [15:0] lsa_raw,
-    input  logic [7:0]  lsn,
-    input  logic        si_valid,      // Si 1개마다 펄스
-    input  logic        pkt_start,     // 새 패킷 시작
+    input logic [15:0] fsa_raw,
+    input logic [15:0] lsa_raw,
+    input logic [ 7:0] lsn,
+    input logic        fsa_lsa_valid,
+    input logic        si_valid,
+    input logic        pkt_start,
 
-    // 현재 Si 의 각도 (정수, 도 단위)
-    output logic [8:0]  angle_deg,     // 0~359°
-    output logic        angle_valid
+    output logic [8:0] angle_deg,
+    output logic       angle_valid
 );
 
-// FSA, LSA 정수 각도
-wire [8:0] angle_fsa = (fsa_raw >> 1) >> 6;
-wire [8:0] angle_lsa = (lsa_raw >> 1) >> 6;
+    // --------------------------------------------------
+    // 기본 각도 계산
+    // --------------------------------------------------
+    wire [8:0] angle_fsa = fsa_raw[15:7];
+    wire [8:0] angle_lsa = lsa_raw[15:7];
 
-// diff: FSA → LSA 각도 차이 (시계방향)
-// wrap-around 처리
-wire [8:0] raw_diff  = angle_lsa - angle_fsa;
-wire [8:0] angle_diff = (angle_lsa >= angle_fsa) ?
-                         raw_diff :
-                         (9'd360 - angle_fsa + angle_lsa);
+    wire [8:0] raw_diff = angle_lsa - angle_fsa;
+    wire [8:0] angle_diff = (angle_lsa >= angle_fsa) ?
+                             raw_diff :
+                             (9'd360 - angle_fsa + angle_lsa);
 
-// Si 인덱스 카운터 (0부터 시작)
-logic [7:0] si_idx;
+    // --------------------------------------------------
+    // LUT 출력
+    // --------------------------------------------------
+    logic [15:0] recip_q16;
 
-always_ff @(posedge clk or negedge rst_n) begin
-    if (!rst_n) begin
-        si_idx      <= '0;
-        angle_deg   <= '0;
-        angle_valid <= '0;
-    end else begin
-        angle_valid <= '0;
+    always_comb begin
+        case (lsn - 1)
+            8'd1: recip_q16 = 16'd65535;
+            8'd2: recip_q16 = 16'd32768;
+            8'd3: recip_q16 = 16'd21845;
+            8'd4: recip_q16 = 16'd16384;
+            8'd5: recip_q16 = 16'd13107;
+            // ...
+            8'd254: recip_q16 = 16'd258;
+            default: recip_q16 = 16'd0;
+        endcase
+    end
 
-        if (pkt_start) begin
-            si_idx <= '0;
-        end
+    // --------------------------------------------------
+    // 내부 레지스터
+    // --------------------------------------------------
+    logic [14:0] fsa_q6;
+    logic [14:0] step_q6;
+    logic [14:0] accum_q6;
 
-        if (si_valid) begin
-            if (lsn == 8'd1) begin
-                // 시작 패킷: 포인트 1개, FSA = LSA
-                angle_deg <= angle_fsa;
-            end else begin
-                // 선형 보간: angle = FSA + diff * i / (LSN-1)
-                // 나눗셈 대신 근사: diff * i / (LSN-1)
-                // LSN 최대 40 이므로 오버플로 주의
-                angle_deg <= angle_fsa +
-                             (angle_diff * {1'b0, si_idx}) /
-                             ({1'b0, lsn} - 9'd1);
+    logic lat_lsn1;
+    logic [8:0] lat_fsa;
+
+    // 곱셈 파이프라인용
+    logic [30:0] mult_tmp;   // (diff<<6)=15bit × recip(16bit) → 31bit 필요하지만 최적화 가능
+
+    // --------------------------------------------------
+    // 메인 로직
+    // --------------------------------------------------
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            fsa_q6      <= '0;
+            step_q6     <= '0;
+            accum_q6    <= '0;
+            lat_lsn1    <= '0;
+            lat_fsa     <= '0;
+            angle_deg   <= '0;
+            angle_valid <= '0;
+            mult_tmp    <= '0;
+        end else begin
+            angle_valid <= 1'b0;
+
+            // ------------------------------------------
+            // STEP 계산 (division 제거!)
+            // ------------------------------------------
+            if (fsa_lsa_valid) begin
+                lat_fsa  <= angle_fsa;
+                lat_lsn1 <= (lsn == 8'd1);
+
+                // fsa_q6 = angle_fsa * 64
+                fsa_q6   <= {angle_fsa, 6'b0};
+
+                if (lsn == 8'd1) begin
+                    step_q6 <= 0;
+                end else begin
+                    // 1-cycle pipeline (timing 안정)
+                    mult_tmp <= ({angle_diff, 6'b0}) * recip_q16;
+                    step_q6  <= mult_tmp[30:16];  // >>16
+                end
+
+                accum_q6 <= {angle_fsa, 6'b0};
             end
 
-            angle_valid <= 1'b1;
-            si_idx      <= si_idx + 1;
+            // ------------------------------------------
+            // 각도 출력
+            // ------------------------------------------
+            if (si_valid) begin
+                if (lat_lsn1) begin
+                    angle_deg <= lat_fsa;
+                end else begin
+                    angle_deg <= accum_q6[14:6];
+                    accum_q6  <= accum_q6 + step_q6;
+                end
+
+                angle_valid <= 1'b1;
+            end
         end
     end
-end
 
 endmodule

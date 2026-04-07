@@ -16,11 +16,12 @@ module packet_parser (
     input logic       byte_valid,
     input logic       pkt_start,
 
-    output logic        ct_start_bit,
-    output logic [ 7:0] lsn,
+    output logic ct_start_bit,
+    output logic [7:0] lsn,
     output logic [15:0] fsa_raw,
     output logic [15:0] lsa_raw,
     output logic [15:0] cs_rx,
+    output logic        fsa_lsa_valid, // FSA+LSA 파싱 완료 펄스 (S1 전에 출력)
 
     output logic [15:0] si_raw,
     output logic        si_valid,
@@ -52,24 +53,26 @@ module packet_parser (
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            state        <= S_CT;
-            ct_start_bit <= '0;
-            ct_byte      <= '0;
-            lsn          <= '0;
-            fsa_raw      <= '0;
-            lsa_raw      <= '0;
-            cs_rx        <= '0;
-            si_raw       <= '0;
-            si_valid     <= '0;
-            pkt_done     <= '0;
-            cs_ok        <= '0;
-            si_cnt       <= '0;
-            si_byte_l    <= '0;
-            cs_calc      <= PH;
+            state         <= S_CT;
+            ct_start_bit  <= '0;
+            ct_byte       <= '0;
+            lsn           <= '0;
+            fsa_raw       <= '0;
+            lsa_raw       <= '0;
+            cs_rx         <= '0;
+            fsa_lsa_valid <= '0;
+            si_raw        <= '0;
+            si_valid      <= '0;
+            pkt_done      <= '0;
+            cs_ok         <= '0;
+            si_cnt        <= '0;
+            si_byte_l     <= '0;
+            cs_calc       <= PH;
         end else begin
-            si_valid <= '0;
-            pkt_done <= '0;
-            cs_ok    <= '0;
+            si_valid      <= '0;
+            pkt_done      <= '0;
+            cs_ok         <= '0;
+            fsa_lsa_valid <= '0;
 
             if (pkt_start) begin
                 state   <= S_CT;
@@ -115,8 +118,9 @@ module packet_parser (
 
                     S_LSA_H: begin
                         lsa_raw[15:8] <= byte_in;
-                        state         <= S_CS_L;
-                        cs_calc       <= cs_calc ^ {byte_in, lsa_raw[7:0]};
+                        state <= S_CS_L;
+                        cs_calc <= cs_calc ^ {byte_in, lsa_raw[7:0]};
+                        fsa_lsa_valid <= 1'b1;  // S1 수신 전 각도 계산 시작 신호
                     end
 
                     // ------------------------------------------

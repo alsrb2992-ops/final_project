@@ -22,10 +22,10 @@
 //      brake_output           ← GPIO 제동 출력
 // ============================================================
 module lidar_top #(
-    parameter CLK_FREQ        = 125_000_000,
+    parameter CLK_FREQ        = 125_000_000,  // Zybo Z7: 125MHz
     parameter BAUD_RATE       = 128_000,
-    parameter FRONT_ANGLE_DEG = 9'd60,
-    parameter BRAKE_DIST_MM   = 14'd300,
+    parameter FRONT_ANGLE_DEG = 9'd60,        // 전방 ±60° = 총 120°
+    parameter BRAKE_DIST_MM   = 14'd300,      // 제동 거리 300mm
     parameter HOLD_MS         = 32'd200
 ) (
     input logic clk,
@@ -61,7 +61,8 @@ module lidar_top #(
     logic [15:0] parser_si_raw;
     logic        parser_si_valid;
     logic        parser_pkt_done;
-    logic        parser_cs_ok;  // CS 검증 결과
+    logic        parser_cs_ok;
+    logic        parser_fsa_lsa_valid;  // FSA+LSA 완료 펄스
 
     // distance_calc → interference_filter
     logic [13:0] dist_out;
@@ -113,20 +114,21 @@ module lidar_top #(
 
     // 3. 패킷 파싱
     packet_parser u_parser (
-        .clk         (clk),
-        .rst_n       (rst_n),
-        .byte_in     (sync_byte),
-        .byte_valid  (sync_byte_valid),
-        .pkt_start   (sync_pkt_start),
-        .ct_start_bit(parser_ct_start),
-        .lsn         (parser_lsn),
-        .fsa_raw     (parser_fsa),
-        .lsa_raw     (parser_lsa),
-        .cs_rx       (parser_cs),
-        .si_raw      (parser_si_raw),
-        .si_valid    (parser_si_valid),
-        .pkt_done    (parser_pkt_done),
-        .cs_ok       (parser_cs_ok)
+        .clk          (clk),
+        .rst_n        (rst_n),
+        .byte_in      (sync_byte),
+        .byte_valid   (sync_byte_valid),
+        .pkt_start    (sync_pkt_start),
+        .ct_start_bit (parser_ct_start),
+        .lsn          (parser_lsn),
+        .fsa_raw      (parser_fsa),
+        .lsa_raw      (parser_lsa),
+        .cs_rx        (parser_cs),
+        .fsa_lsa_valid(parser_fsa_lsa_valid),
+        .si_raw       (parser_si_raw),
+        .si_valid     (parser_si_valid),
+        .pkt_done     (parser_pkt_done),
+        .cs_ok        (parser_cs_ok)
     );
 
     // 4. 거리 계산
@@ -140,22 +142,24 @@ module lidar_top #(
         .calc_valid(dist_valid)
     );
 
-    // 5. 각도 계산 (정수부)
+    // 5. 각도 계산
+    // fsa_lsa_valid(S1 수신 전) 에 미리 파라미터 래치
+    // si_valid 시점에는 이미 계산 준비 완료 → timing 여유 충분
     angle_calc u_angle (
-        .clk        (clk),
-        .rst_n      (rst_n),
-        .fsa_raw    (parser_fsa),
-        .lsa_raw    (parser_lsa),
-        .lsn        (parser_lsn),
-        .si_valid   (parser_si_valid),
-        .pkt_start  (sync_pkt_start),
-        .angle_deg  (angle_out),
-        .angle_valid(angle_valid)
+        .clk          (clk),
+        .rst_n        (rst_n),
+        .fsa_raw      (parser_fsa),
+        .lsa_raw      (parser_lsa),
+        .lsn          (parser_lsn),
+        .fsa_lsa_valid(parser_fsa_lsa_valid),
+        .si_valid     (parser_si_valid),
+        .pkt_start    (sync_pkt_start),
+        .angle_deg    (angle_out),
+        .angle_valid  (angle_valid)
     );
 
     // 6. 간섭 필터링
-    // CS 불일치 패킷은 si_valid 차단하여 데이터 통과 막음
-    // dist_valid 와 angle_valid 가 같은 Si에서 동시에 나옴
+    // dist_valid(1클럭) 와 angle_valid(1클럭) 동일 타이밍
     interference_filter u_filter (
         .clk           (clk),
         .rst_n         (rst_n),

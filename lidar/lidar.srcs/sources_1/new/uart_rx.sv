@@ -4,7 +4,7 @@
 // 115200 baud, 8N1
 // ============================================================
 module uart_rx #(
-    parameter CLK_FREQ  = 50_000_000,
+    parameter CLK_FREQ  = 125_000_000,
     parameter BAUD_RATE = 128_000
 ) (
     input logic clk,
