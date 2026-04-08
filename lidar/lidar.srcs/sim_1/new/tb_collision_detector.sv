@@ -12,8 +12,8 @@ module tb_collision_detector;
 
     localparam CLK_PERIOD = 20;
     localparam NUM_TESTS = 1000;
-    localparam FRONT_ANGLE_DEG = 9'd20;
-    localparam BRAKE_DIST_MM = 14'd500;
+    localparam FRONT_ANGLE_DEG = 9'd30;
+    localparam BRAKE_DIST_MM = 14'd300;
     localparam WARN_DIST_MM = BRAKE_DIST_MM * 2;  // 1000mm
 
     logic          clk;

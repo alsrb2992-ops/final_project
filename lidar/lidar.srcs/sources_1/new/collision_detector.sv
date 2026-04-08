@@ -15,7 +15,7 @@
 // ============================================================
 module collision_detector #(
     parameter FRONT_ANGLE_DEG = 9'd20,
-    parameter BRAKE_DIST_MM   = 14'd500
+    parameter BRAKE_DIST_MM   = 14'd300
 ) (
     input logic clk,
     input logic rst_n,

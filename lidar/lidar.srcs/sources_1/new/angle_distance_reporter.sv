@@ -90,18 +90,21 @@ module angle_distance_reporter #(
             s0_valid <= '0;
             if (data_valid) begin
                 for (int i = 0; i < NUM_ANG; i++) begin
-                    if (ANG[i] == 9'd0) begin
-                        if (angle_in <= 9'd1 || angle_in >= 9'd359) begin
-                            s0_dist  <= dist_in;
-                            s0_idx   <= 3'(i);
-                            s0_valid <= 1'b1;
-                        end
-                    end else begin
-                        if (angle_in >= ANG[i] - 9'd1 &&
-                            angle_in <= ANG[i] + 9'd1) begin
-                            s0_dist  <= dist_in;
-                            s0_idx   <= 3'(i);
-                            s0_valid <= 1'b1;
+                    if (dist_in != 0) begin
+
+                        if (ANG[i] == 9'd0) begin
+                            if (angle_in <= 9'd1 || angle_in >= 9'd359) begin
+                                s0_dist  <= dist_in;
+                                s0_idx   <= 3'(i);
+                                s0_valid <= 1'b1;
+                            end
+                        end else begin
+                            if (angle_in >= ANG[i] - 9'd3 &&
+                            angle_in <= ANG[i] + 9'd3) begin
+                                s0_dist  <= dist_in;
+                                s0_idx   <= 3'(i);
+                                s0_valid <= 1'b1;
+                            end
                         end
                     end
                 end

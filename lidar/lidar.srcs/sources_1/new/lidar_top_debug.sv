@@ -1,10 +1,6 @@
 // ============================================================
 // lidar_top_debug.sv
-// lidar_top 과 동일하나 내부 포인트 데이터를 외부로 노출
-// 각도별 거리 확인용 (angle_distance_reporter 연결 목적)
-//
-// lidar_top.sv 와의 차이:
-//   포트 추가: report_angle, report_dist, report_valid
+// lidar_top 과 동일하나 report 포트 3개 추가 (디버그용)
 // ============================================================
 module lidar_top_debug #(
     parameter CLK_FREQ        = 125_000_000,
@@ -13,14 +9,12 @@ module lidar_top_debug #(
     parameter BRAKE_DIST_MM   = 14'd300,
     parameter HOLD_MS         = 32'd200
 ) (
-    input logic clk,
-    input logic rst_n,
-    input logic lidar_rx,
-
-    output logic brake_gpio,
-    output logic warning_led,
-
-    // 디버그용: interference_filter 통과한 포인트 출력
+    input  logic        clk,
+    input  logic        rst_n,
+    input  logic        lidar_rx,
+    output logic        brake_gpio,
+    output logic        warning_led,
+    // 디버그용 report 포트
     output logic [ 8:0] report_angle,
     output logic [13:0] report_dist,
     output logic        report_valid
@@ -46,6 +40,12 @@ module lidar_top_debug #(
     logic        dist_valid;
     logic [ 8:0] angle_out;
     logic        angle_valid;
+
+    logic [13:0] dist_out_d1, dist_out_d2;
+    logic [1:0] dist_is_d1, dist_is_d2;
+    logic dist_valid_d1, dist_valid_d2;
+    logic cs_ok_d1, cs_ok_d2;
+
     logic [13:0] filt_dist;
     logic [ 8:0] filt_angle;
     logic        filt_valid;
@@ -115,13 +115,37 @@ module lidar_top_debug #(
         .angle_valid(angle_valid)
     );
 
+    // dist 2클럭 딜레이 (angle_calc +3클럭에 맞춤)
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            dist_out_d1   <= '0;
+            dist_out_d2   <= '0;
+            dist_is_d1    <= '0;
+            dist_is_d2    <= '0;
+            dist_valid_d1 <= '0;
+            dist_valid_d2 <= '0;
+            cs_ok_d1      <= '0;
+            cs_ok_d2      <= '0;
+        end else begin
+            dist_out_d1   <= dist_out;
+            dist_is_d1    <= dist_is;
+            dist_valid_d1 <= dist_valid;
+            cs_ok_d1      <= parser_cs_ok;
+
+            dist_out_d2   <= dist_out_d1;
+            dist_is_d2    <= dist_is_d1;
+            dist_valid_d2 <= dist_valid_d1;
+            cs_ok_d2      <= cs_ok_d1;
+        end
+    end
+
     interference_filter u_filter (
         .clk(clk),
         .rst_n(rst_n),
-        .distance_in(dist_out),
-        .is_flag(dist_is),
+        .distance_in(dist_out_d2),
+        .is_flag(dist_is_d2),
         .angle_in(angle_out),
-        .data_valid(dist_valid & parser_cs_ok),
+        .data_valid(angle_valid  /* & cs_ok_d2 */),
         .distance_out(filt_dist),
         .angle_out(filt_angle),
         .filtered_valid(filt_valid)
@@ -159,7 +183,6 @@ module lidar_top_debug #(
         .warning_led(warning_led)
     );
 
-    // 디버그 포트: interference_filter 통과한 포인트 그대로 노출
     assign report_angle = filt_angle;
     assign report_dist  = filt_dist;
     assign report_valid = filt_valid;

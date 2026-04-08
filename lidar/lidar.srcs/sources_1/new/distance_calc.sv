@@ -29,8 +29,8 @@ module distance_calc (
     // Di 비트 분리
     // byte1 = si_raw[7:0], byte2 = si_raw[15:8]
     // ----------------------------------------------------------
-    wire [5:0] di_low = si_raw[7:2];  // Di[5:0]  : byte1 의 bit[7:2]
-    wire [7:0] di_high = si_raw[15:8];  // Di[13:6] : byte2 전체
+    wire [ 5:0] di_low = si_raw[7:2];  // Di[5:0]  : byte1 의 bit[7:2]
+    wire [ 7:0] di_high = si_raw[15:8];  // Di[13:6] : byte2 전체
 
     // ----------------------------------------------------------
     // Distance = Di[5:0] + Di[13:6] * 64
@@ -41,8 +41,7 @@ module distance_calc (
     //   di_low   최대     = 63        →  6비트
     //   합산 최대          = 16383     → 14비트 이내
     // ----------------------------------------------------------
-    wire [13:0] dist_calc = {di_high, 6'b0}  // di_high << 6
-    + {8'b0, di_low};  // di_low
+    wire [13:0] dist_calc = {di_high, di_low};  // di_high di_low
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -59,5 +58,4 @@ module distance_calc (
             end
         end
     end
-
 endmodule
