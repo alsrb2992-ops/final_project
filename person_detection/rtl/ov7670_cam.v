@@ -54,13 +54,21 @@ module ov7670_cam (
         else begin
             pixel_valid <= 1'b0;
 
+            // [Latch 방지] byte_sel, first_byte default 유지 할당
+            // vsync=0, pclk_rise=0, href=0 등 조건 불만족 시
+            // 할당이 없으면 Vivado가 latch를 추론함
+            // → 매 사이클 자기 자신을 유지하도록 명시
+            byte_sel   <= byte_sel;
+            first_byte <= first_byte;
+
             if (vsync) begin
-                // 프레임 시작 시 리셋
+                // 프레임 시작 시 리셋 (위의 default 유지를 덮어씀)
                 byte_sel <= 1'b0;
             end
             else if (pclk_rise && href) begin
                 if (!byte_sel) begin
                     // 첫 번째 바이트: R[3:0]=d[7:4], G[3:0]=d[3:0]
+                    // (위의 default 유지를 덮어씀)
                     first_byte <= d;
                     byte_sel   <= 1'b1;
                 end

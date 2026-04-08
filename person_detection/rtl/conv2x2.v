@@ -12,7 +12,7 @@
 
 module conv2x2 #(
     parameter C_IN        = 32,
-    parameter IMG_W_IN    = 14,       // DSC2 Pool 출력 가로
+    parameter IMG_W_IN    = 14,
     parameter WEIGHT_FILE = "conv_out_w.hex"
 ) (
     input  wire clk,
@@ -22,17 +22,10 @@ module conv2x2 #(
     input  wire [C_IN*16-1:0]    pixel_in,
 
     output reg                    out_valid,
-    output reg  signed [39:0]    acc_out_raw    // sigmoid 입력용 raw logit
+    output reg  signed [39:0]    acc_out_raw
 );
 
     // ── 가중치 ROM: C_IN × 4 (2×2) ──────────────────────────────────
-    // localparam WEIGHT_DEPTH = C_IN * 4;
-    // reg signed [15:0] weight_rom [0:WEIGHT_DEPTH-1];
-
-    // initial begin
-    //     if (WEIGHT_FILE != "")
-    //         $readmemh(WEIGHT_FILE, weight_rom);
-    // end
     localparam WEIGHT_DEPTH = C_IN * 4;
     (* rom_style = "block" *) reg signed [15:0] weight_rom [0:WEIGHT_DEPTH-1];
 
@@ -46,8 +39,6 @@ module conv2x2 #(
     initial bias = 16'sd0;
 
     // ── 라인버퍼 (C_IN 각각, 깊이 IMG_W_IN) ─────────────────────────
-    // 이전 행의 C_IN 채널 픽셀을 저장
-    // reg signed [15:0] line_buf [0:C_IN-1][0:IMG_W_IN-1];
     // 이전 행의 C_IN 채널 픽셀을 저장. BRAM 사용 강제 속성 추가
     (* ram_style = "block" *) reg signed [15:0] line_buf [0:C_IN-1][0:IMG_W_IN-1];
 
@@ -69,7 +60,6 @@ module conv2x2 #(
 
     // prev_row의 현재 열 값 (라인버퍼에서 읽음)
     reg signed [15:0] lb_read [0:C_IN-1];
-    
 
     // ── FSM ──────────────────────────────────────────────────────────
     localparam ST_IDLE    = 3'd0;
@@ -80,9 +70,9 @@ module conv2x2 #(
 
     reg [2:0] state;
     reg [$clog2(C_IN)-1:0]  ch_idx;
-    reg [1:0]               k_idx;    // 커널 위치 0~3
+    reg [1:0]               k_idx;
     reg signed [39:0]       acc;
-    reg                     win_valid; // 2×2 윈도우가 유효한지
+    reg                     win_valid;
 
     integer i, j;
 
@@ -115,7 +105,6 @@ module conv2x2 #(
                 prev_col_prev_row[i] <= 0;
                 prev_col_cur_row[i]  <= 0;
                 lb_read[i]           <= 0;
-                
                 // XXXXX [삭제된 부분] BRAM 합성을 방해하는 배열 초기화 로직 제거
                 // for (j = 0; j < IMG_W_IN; j = j + 1)
                 //     line_buf[i][j] <= 0;
@@ -124,9 +113,15 @@ module conv2x2 #(
         else begin
             out_valid <= 1'b0;
 
+            // [Latch 방지] pixel_latch default 유지 할당
+            // ST_IDLE에서 in_valid=0인 경우 pixel_latch 할당이 없으면
+            // Vivado가 latch를 추론함 → 매 사이클 자기 자신을 유지하도록 명시
+            pixel_latch <= pixel_latch;
+
             case (state)
                 ST_IDLE: begin
                     if (in_valid) begin
+                        // in_valid 시에만 새 픽셀 래치 (위의 default 유지를 덮어씀)
                         pixel_latch <= pixel_in;
                         state <= ST_LOAD;
                     end
