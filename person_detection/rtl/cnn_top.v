@@ -51,7 +51,7 @@ module cnn_top (
         .C_IN        (3),
         .C_OUT       (8),
         .IMG_W_IN    (128),
-        .WEIGHT_FILE ("D:/project/FINAL_PJT_260331_260513/hex_files/conv1_w.hex")
+        .WEIGHT_FILE ("../../../../dummy_weights/conv1_w.hex")
     ) u_conv1 (
         .clk        (clk),
         .rst_n      (rst_n),
@@ -95,8 +95,8 @@ module cnn_top (
         .C_IN           (8),
         .C_OUT          (16),
         .IMG_W_IN       (63),
-        .DW_WEIGHT_FILE ("D:/project/FINAL_PJT_260331_260513/hex_files/dsc1_dw_w.hex"),
-        .PW_WEIGHT_FILE ("D:/project/FINAL_PJT_260331_260513/hex_files/dsc1_pw_w.hex")
+        .DW_WEIGHT_FILE ("../../../../dummy_weights/dsc1_dw_w.hex"),
+        .PW_WEIGHT_FILE ("../../../../dummy_weights/dsc1_pw_w.hex")
     ) u_dsc1 (
         .clk        (clk),
         .rst_n      (rst_n),
@@ -117,8 +117,8 @@ module cnn_top (
         .C_IN           (16),
         .C_OUT          (32),
         .IMG_W_IN       (30),
-        .DW_WEIGHT_FILE ("D:/project/FINAL_PJT_260331_260513/hex_files/dsc2_dw_w.hex"),
-        .PW_WEIGHT_FILE ("D:/project/FINAL_PJT_260331_260513/hex_files/dsc2_pw_w.hex")
+        .DW_WEIGHT_FILE ("../../../../dummy_weights/dsc2_dw_w.hex"),
+        .PW_WEIGHT_FILE ("../../../../dummy_weights/dsc2_pw_w.hex")
     ) u_dsc2 (
         .clk        (clk),
         .rst_n      (rst_n),
@@ -137,7 +137,7 @@ module cnn_top (
     conv2x2 #(
         .C_IN        (32),
         .IMG_W_IN    (14),
-        .WEIGHT_FILE ("D:/project/FINAL_PJT_260331_260513/hex_files/conv_out_w.hex")
+        .WEIGHT_FILE ("../../../../dummy_weights/conv_out_w.hex")
     ) u_conv_out (
         .clk        (clk),
         .rst_n      (rst_n),
