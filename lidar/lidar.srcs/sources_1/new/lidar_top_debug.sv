@@ -1,20 +1,24 @@
 // ============================================================
-// lidar_top.sv
-// YDLIDAR X4PRO 충돌방지 시스템 최상위 모듈
+// lidar_top_debug.sv
+// lidar_top 과 동일하나 report 포트 3개 추가 (디버그용)
 // ============================================================
-module lidar_top #(
+module lidar_top_debug #(
     parameter CLK_FREQ        = 125_000_000,
     parameter BAUD_RATE       = 128_000,
-    parameter FRONT_ANGLE_DEG = 9'd80,
+    parameter FRONT_ANGLE_DEG = 9'd60,
     parameter BRAKE_DIST_MM   = 14'd300,
     parameter WARN_DIST_MM    = 14'd400,
     parameter HOLD_MS         = 32'd200
 ) (
-    input  logic clk,
-    input  logic rst_n,
-    input  logic lidar_rx,
-    output logic brake_gpio,
-    output logic warning_led
+    input  logic        clk,
+    input  logic        rst_n,
+    input  logic        lidar_rx,
+    output logic        brake_gpio,
+    output logic        warning_led,
+    // 디버그용 report 포트
+    output logic [ 8:0] report_angle,
+    output logic [13:0] report_dist,
+    output logic        report_valid
 );
 
     logic [ 7:0] uart_data;
@@ -38,13 +42,11 @@ module lidar_top #(
     logic [ 8:0] angle_out;
     logic        angle_valid;
 
-    // distance_calc: si_valid +1클럭 → dist_valid
-    // angle_calc:    si_valid +3클럭 → angle_valid (stage1, stage2 파이프라인)
-    // 차이 2클럭 → dist 를 2클럭 딜레이
     logic [13:0] dist_out_d1, dist_out_d2;
     logic [1:0] dist_is_d1, dist_is_d2;
     logic dist_valid_d1, dist_valid_d2;
     logic cs_ok_d1, cs_ok_d2;
+
     logic [13:0] filt_dist;
     logic [ 8:0] filt_angle;
     logic        filt_valid;
@@ -114,7 +116,7 @@ module lidar_top #(
         .angle_valid(angle_valid)
     );
 
-    // dist 2클럭 딜레이
+    // dist 2클럭 딜레이 (angle_calc +3클럭에 맞춤)
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             dist_out_d1   <= '0;
@@ -158,8 +160,8 @@ module lidar_top #(
 
     collision_detector #(
         .FRONT_ANGLE_DEG(FRONT_ANGLE_DEG),
-        .BRAKE_DIST_MM(BRAKE_DIST_MM),
-        .WARN_DIST_MM(WARN_DIST_MM)
+        .BRAKE_DIST_MM  (BRAKE_DIST_MM),
+        .WARN_DIST_MM   (WARN_DIST_MM)
     ) u_collision (
         .clk(clk),
         .rst_n(rst_n),
@@ -182,5 +184,9 @@ module lidar_top #(
         .brake_gpio(brake_gpio),
         .warning_led(warning_led)
     );
+
+    assign report_angle = filt_angle;
+    assign report_dist  = filt_dist;
+    assign report_valid = filt_valid;
 
 endmodule
