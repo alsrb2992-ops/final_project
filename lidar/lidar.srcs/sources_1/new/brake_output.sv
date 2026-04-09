@@ -20,15 +20,13 @@ module brake_output #(
 
     localparam HOLD_CYCLES = CLK_FREQ / 1000 * HOLD_MS;  // 10,000,000
 
-    logic [31:0] hold_cnt;
+    logic [$clog2(HOLD_CYCLES) -1:0] hold_cnt;
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            brake_gpio  <= '0;
-            warning_led <= '0;
-            hold_cnt    <= '0;
+            brake_gpio <= '0;
+            hold_cnt   <= '0;
         end else begin
-            warning_led <= warning_signal;
 
             if (brake_signal) begin
                 // 제동 신호 들어오면 카운터 리셋하고 유지
@@ -40,6 +38,25 @@ module brake_output #(
                 brake_gpio <= 1'b1;
             end else begin
                 brake_gpio <= 1'b0;
+            end
+        end
+    end
+
+    logic [$clog2(HOLD_CYCLES) -1 : 0] hold_cnt_1;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            warning_led <= '0;
+            hold_cnt_1  <= '0;
+        end else begin
+
+            if (warning_signal) begin
+                warning_led <= 1'b1;
+                hold_cnt_1  <= HOLD_CYCLES;
+            end else if (hold_cnt_1 > 0) begin
+                hold_cnt_1  <= hold_cnt_1 - 1;
+                warning_led <= 1'b1;
+            end else begin
+                warning_led <= 1'b0;
             end
         end
     end

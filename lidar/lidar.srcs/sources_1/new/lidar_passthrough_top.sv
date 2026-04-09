@@ -11,8 +11,9 @@ module lidar_passthrough_top #(
     parameter CLK_FREQ        = 100_000_000,
     parameter BAUD_RATE       = 128_000,
     parameter PC_BAUD_RATE    = 128_000,
-    parameter FRONT_ANGLE_DEG = 9'd60,
+    parameter FRONT_ANGLE_DEG = 9'd80,
     parameter BRAKE_DIST_MM   = 14'd300,
+    parameter WARN_DIST_MM    = 14'd400,
     parameter HOLD_MS         = 32'd200
 ) (
     input logic clk,
@@ -38,6 +39,7 @@ module lidar_passthrough_top #(
         .BAUD_RATE      (BAUD_RATE),
         .FRONT_ANGLE_DEG(FRONT_ANGLE_DEG),
         .BRAKE_DIST_MM  (BRAKE_DIST_MM),
+        .WARN_DIST_MM   (WARN_DIST_MM),
         .HOLD_MS        (HOLD_MS)
     ) u_lidar_top (
         .clk         (clk),

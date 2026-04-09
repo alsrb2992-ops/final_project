@@ -7,6 +7,7 @@ module lidar_top_debug #(
     parameter BAUD_RATE       = 128_000,
     parameter FRONT_ANGLE_DEG = 9'd60,
     parameter BRAKE_DIST_MM   = 14'd300,
+    parameter WARN_DIST_MM    = 14'd400,
     parameter HOLD_MS         = 32'd200
 ) (
     input  logic        clk,
@@ -159,7 +160,8 @@ module lidar_top_debug #(
 
     collision_detector #(
         .FRONT_ANGLE_DEG(FRONT_ANGLE_DEG),
-        .BRAKE_DIST_MM  (BRAKE_DIST_MM)
+        .BRAKE_DIST_MM  (BRAKE_DIST_MM),
+        .WARN_DIST_MM   (WARN_DIST_MM)
     ) u_collision (
         .clk(clk),
         .rst_n(rst_n),

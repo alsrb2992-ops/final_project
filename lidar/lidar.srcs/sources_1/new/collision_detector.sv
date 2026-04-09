@@ -15,7 +15,8 @@
 // ============================================================
 module collision_detector #(
     parameter FRONT_ANGLE_DEG = 9'd20,
-    parameter BRAKE_DIST_MM   = 14'd300
+    parameter BRAKE_DIST_MM   = 14'd300,
+    parameter WARN_DIST_MM    = 14'd400
 ) (
     input logic clk,
     input logic rst_n,
@@ -29,7 +30,6 @@ module collision_detector #(
     output logic warning_signal
 );
 
-    localparam WARN_DIST_MM = BRAKE_DIST_MM * 2;
 
     wire in_front_zone = (angle <= FRONT_ANGLE_DEG) ||
                          (angle >= (9'd360 - FRONT_ANGLE_DEG));
