@@ -39,6 +39,16 @@ int image_resize(const uint16_t *src_frame, uint16_t *dst_frame,
 /**
   * @brief RGB565 -> Q4.12 변환 (3채널 분리)
   *
+  * 변환 과정:
+  *     1. RGB565 -> RGB888 (5/6/5bit -> 8bit 확장)
+  *     2. 정규화 (0-255 -> 0.0-1.0)
+  *     3. Q4.12 변환 (x 4096)
+  *
+  * Q4.12 형식:
+  *     - 부호: 1bit + 정수부 3bit + 소수부 12bit
+  *     - 0.0 = 0x0000
+  *     - 1.0 = 0x1000 (4096)
+  *     - 범위: -8.0 - +7.99976
   * @param rgb565_frame RGB565 이미지
   * @param q412_r R 채널 Q4.12 배열
   * @param q412_g G 채널 Q4.12 배열
@@ -47,5 +57,6 @@ int image_resize(const uint16_t *src_frame, uint16_t *dst_frame,
   * @param height 이미지 세로
   * @return 0: 성공, -1: 실패
   */
+int image_rgb565_to_q412(const uint16_t *rgb565_frame, int16_t *q412_r, int16_t *q412_g, int16_t *q412_b, int width, int height);
 
 #endif

@@ -22,6 +22,11 @@
 static uint16_t cam_frame[CAM_FRAME_SIZE] __attribute__((aligned(32)));        // DDR에서 읽어온 원본 이미지 (RGB565, 16bit per pixel)
 static uint16_t resized_frame[CNN_FRAME_SIZE] __attribute__((aligned(32)));    // Resize된 이미지 (RGB565, 16bit per pixel)
 
+// Q4.12 고정소수점 버퍼 (R, G, B 채널 분리)
+static int16_t r_channel[CNN_FRAME_SIZE] __attribute__((aligned(32)));
+static int16_t g_channel[CNN_FRAME_SIZE] __attribute__((aligned(32)));
+static int16_t b_channel[CNN_FRAME_SIZE] __attribute__((aligned(32)));
+
 // ========================= 메인 함수 =========================
 int main() {
     int status;
@@ -44,6 +49,14 @@ int main() {
     status = image_resize(cam_frame, resized_frame, CAM_WIDTH, CAM_HEIGHT, CNN_WIDTH, CNN_HEIGHT);
     if (status != 0) {
         xil_printf("[ERROR Failed to resize image\r\n");
+        return -1;
+    }
+
+    // ------- Step 3: RGB565 -> Q4.12 변환 (3채널 분리) -------
+    xil_printf("\r\n[STEP 3] Image preprocessing (Q4.12 conversion)...\r\n");
+    status = image_rgb565_to_q412(resized_frame, r_channel, g_channel, b_channel, CNN_WIDTH, CNN_HEIGHT);
+    if (status != 0) {
+        xil_printf("[ERROR] Failed to convert to Q4.12\r\n");
         return -1;
     }
 

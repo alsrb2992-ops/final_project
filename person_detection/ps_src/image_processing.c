@@ -131,3 +131,45 @@ int image_resize(const uint16_t *src_frame, uint16_t *dst_frame, int src_width, 
     return 0;
 }
 #endif
+
+// ==================== RGB565 -> Q4.12 변환 (3채널 분리) ====================
+int image_rgb565_to_q412(const uint16_t *rgb565_frame, int16_t *q412_r, int16_t *q412_g, int16_t *q412_b, int width, int height) {
+    if (!rgb565_frame || !q412_r || !q412_g || !q412_b) {
+        xil_printf("[ERROR] Null pointer in Q4.12 conversion\r\n");
+        return -1;
+    }
+
+    xil_printf("[INFO] Converting RGB565 to Q4.12 (%dx%d)...\r\n", width, height);
+
+    int total_pixels = width * height;
+
+    for (int i=0; i<total_pixels; i++) {
+        uint16_t rgb565 = rgb565_frame[i];
+
+        // RGB565 -> RGB888 추출
+        uint8_t r5 = (rgb565 >> 11) & 0x1F;    // 5bit R
+        uint8_t g6 = (rgb565 >> 5) & 0x3F;     // 6bit G
+        uint8_t b5 = rgb565 & 0x1F;            // 5bit B
+
+        // 8bit로 확장
+        uint8_t r8 = (r5 << 3) | (r5 >> 2);    // 5bit -> 8bit
+        uint8_t g8 = (g6 << 2) | (g6 >> 4);    // 6bit -> 8bit
+        uint8_t b8 = (b5 << 3) | (b5 >> 2);    // 5bit -> 8bit
+
+        // 정규화 (0-255 -> 0.0-1.0) 및 Q4.12 변환
+        // q412 = (value / 255.0) * 4096 = value * (4096 / 255) = (value * 4096) / 255
+        q412_r[i] = ((int32_t)r8 * 4096) / 255;
+        q412_g[i] = ((int32_t)g8 * 4096) / 255;
+        q412_b[i] = ((int32_t)b8 * 4096) / 255;
+    }
+
+    xil_printf("[INFO] Q4.12 conversion complete\r\n");
+
+    // 디버그: 첫 몇 픽셀 Q4.12 값 출력
+    xil_printf("[DEBUG] First 8 pixels (Q4.12):\r\n");
+    for (int i=0; i<8; i++) {
+        xil_printf("  [%d] R=0x%04X G=0x%04X B=0x%04X\r\n", i, (uint16_t)q412_r[i], (uint16_t)q412_g[i], (uint16_t)q412_b[i]);
+    }
+
+    return 0;
+}
