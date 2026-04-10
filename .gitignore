@@ -27,7 +27,6 @@ __pycache__/
 *.dcp
 *.ltx
 *.xdc.bak
-*.xsa
 *.analytics
 **/*_wrapper/
 
@@ -36,11 +35,42 @@ __pycache__/
 # Block Design
 **/*.srcs/**/bd/
 
+# ----------------------- Vitis / SDK -----------------------
+# Vitis Workspace
+vitis_workspace/
+
+# Vitis Auto Generated Files
+**/.Xil/
+**/hw_handoff/
+**/export/
+**/*.prm
+**/*.elf.size
+**/ps7_init*
+**/zynq_fsbl*
+**/platform.tcl
+
+# BSP (자동 생성)
+**/bsp/
+**/standalone_domain/
+
+# Bootgen
+*.bif
+BOOT.bin
+
+# Vitis HLS
+**/*.app
+**/*.directive
+**/*.rpt
+
+# Eclipse/Vitis Metadata
+.cproject
+.project
+.pydevproject
+.autotools
+.settings/
+
 # --------------- STM32CubeIDE / Eclipse ---------------
 .metadata/
-.settings/
-.project
-.cproject
 .mxproject
 *.launch
 
