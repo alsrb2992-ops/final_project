@@ -52,7 +52,7 @@ module lidar_top #(
     logic        warn_sig;
     logic        round_done_sig;
 
-    uart_rx #(
+    uart_rx_lidar #(
         .CLK_FREQ (CLK_FREQ),
         .BAUD_RATE(BAUD_RATE)
     ) u_uart_rx (
