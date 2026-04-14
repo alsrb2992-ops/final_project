@@ -15,6 +15,7 @@ module top_fifo_uart (
     assign empty   = w_rx_empty;
 
 
+
     uart_rx_my U_UART_RX (
         .clk(clk),
         .reset(rst),

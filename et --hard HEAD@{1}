@@ -1,0 +1,78 @@
+[33m02c5fd0[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeat/8[m[33m, [m[1;31morigin/feat/10[m[33m, [m[1;31morigin/dev[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mdev[m[33m)[m HEAD@{0}: reset: moving to HEAD^
+[33mdd39160[m HEAD@{1}: commit: asd
+[33m02c5fd0[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeat/8[m[33m, [m[1;31morigin/feat/10[m[33m, [m[1;31morigin/dev[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mdev[m[33m)[m HEAD@{2}: checkout: moving from dev to feat/8
+[33m02c5fd0[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeat/8[m[33m, [m[1;31morigin/feat/10[m[33m, [m[1;31morigin/dev[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mdev[m[33m)[m HEAD@{3}: checkout: moving from feat/8 to dev
+[33m02c5fd0[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeat/8[m[33m, [m[1;31morigin/feat/10[m[33m, [m[1;31morigin/dev[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mdev[m[33m)[m HEAD@{4}: checkout: moving from dev to feat/8
+[33m02c5fd0[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeat/8[m[33m, [m[1;31morigin/feat/10[m[33m, [m[1;31morigin/dev[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mdev[m[33m)[m HEAD@{5}: checkout: moving from dev to dev
+[33m02c5fd0[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeat/8[m[33m, [m[1;31morigin/feat/10[m[33m, [m[1;31morigin/dev[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mdev[m[33m)[m HEAD@{6}: checkout: moving from b60a52432896c78dd06579c2c51f8ffe339760cc to dev
+[33mb60a524[m[33m ([m[1;31morigin/feat/lidar[m[33m, [m[1;32mfeat/lidar[m[33m)[m HEAD@{7}: checkout: moving from feat/lidar to b60a524
+[33mb60a524[m[33m ([m[1;31morigin/feat/lidar[m[33m, [m[1;32mfeat/lidar[m[33m)[m HEAD@{8}: checkout: moving from b60a52432896c78dd06579c2c51f8ffe339760cc to feat/lidar
+[33mb60a524[m[33m ([m[1;31morigin/feat/lidar[m[33m, [m[1;32mfeat/lidar[m[33m)[m HEAD@{9}: checkout: moving from feat/lidar to origin/feat/lidar
+[33mb60a524[m[33m ([m[1;31morigin/feat/lidar[m[33m, [m[1;32mfeat/lidar[m[33m)[m HEAD@{10}: checkout: moving from dev to feat/lidar
+[33m02c5fd0[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeat/8[m[33m, [m[1;31morigin/feat/10[m[33m, [m[1;31morigin/dev[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mdev[m[33m)[m HEAD@{11}: checkout: moving from feat/lidar to dev
+[33mb60a524[m[33m ([m[1;31morigin/feat/lidar[m[33m, [m[1;32mfeat/lidar[m[33m)[m HEAD@{12}: checkout: moving from dev to feat/lidar
+[33m02c5fd0[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeat/8[m[33m, [m[1;31morigin/feat/10[m[33m, [m[1;31morigin/dev[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mdev[m[33m)[m HEAD@{13}: merge feat/lidar: Merge made by the 'ort' strategy.
+[33m0328bcc[m[33m ([m[1;31morigin/test/5[m[33m)[m HEAD@{14}: checkout: moving from feat/lidar to dev
+[33mb60a524[m[33m ([m[1;31morigin/feat/lidar[m[33m, [m[1;32mfeat/lidar[m[33m)[m HEAD@{15}: commit: feat: LiDAR 기반 충돌 방지 기능 구현 최종 완료
+[33m13f1f71[m HEAD@{16}: checkout: moving from dev to feat/lidar
+[33m0328bcc[m[33m ([m[1;31morigin/test/5[m[33m)[m HEAD@{17}: merge origin/test/5: Fast-forward
+[33m8405760[m HEAD@{18}: checkout: moving from feat/lidar to dev
+[33m13f1f71[m HEAD@{19}: checkout: moving from dev to feat/lidar
+[33m8405760[m HEAD@{20}: checkout: moving from feat/lidar to dev
+[33m13f1f71[m HEAD@{21}: checkout: moving from 5f421e082ebe1616eed84cd3ecff2d374396ce2a to feat/lidar
+[33m5f421e0[m HEAD@{22}: checkout: moving from asd to 5f421e0
+[33m5f421e0[m HEAD@{23}: reset: moving to HEAD^
+[33mf3a307c[m HEAD@{24}: commit: asd
+[33m5f421e0[m HEAD@{25}: checkout: moving from 5f421e082ebe1616eed84cd3ecff2d374396ce2a to asd
+[33m5f421e0[m HEAD@{26}: rebase (start): checkout 8d29cc7^
+[33m13f1f71[m HEAD@{27}: checkout: moving from 62fd29aaec60a04594bb7580e5f4144726fb5f76 to feat/lidar
+[33m62fd29a[m HEAD@{28}: checkout: moving from asd to 62fd29a
+[33m62fd29a[m HEAD@{29}: reset: moving to HEAD^
+[33me444108[m HEAD@{30}: commit: asd
+[33m62fd29a[m HEAD@{31}: checkout: moving from 62fd29aaec60a04594bb7580e5f4144726fb5f76 to asd
+[33m62fd29a[m HEAD@{32}: checkout: moving from 96d6cd65210a2ab28dc99ca3a765cafb54393d86 to 62fd29a
+[33m96d6cd6[m HEAD@{33}: checkout: moving from feat/lidar to 96d6cd6
+[33m13f1f71[m HEAD@{34}: commit: feat: LiDAR 기반 충돌 방지 기능 구현 완료
+[33m53f33a3[m HEAD@{35}: commit: feat: 거리 확인을 위한 uart 설정
+[33m96d6cd6[m HEAD@{36}: commit: reafctor: 타이밍 제약 충족을 위한 [angle_calc.sv] 구조 개선
+[33m62fd29a[m HEAD@{37}: commit: chore : LUT 생성
+[33m8c3d0d0[m HEAD@{38}: commit: chore: 전방 감지 범위 및 정지 거리 임계값 조정
+[33m8d29cc7[m HEAD@{39}: commit: feat: LiDAR 신호 수신 및 충돌 방지 기능 구현
+[33m5f421e0[m HEAD@{40}: commit: test: LiIDAR 충돌 방지 시그널 생성 테스트 완료
+[33m9d519ab[m HEAD@{41}: commit: test: LiDAR 거리 측정 모듈 테스트 완료
+[33m6e2bd04[m HEAD@{42}: commit: feat: LiDAR 신호 수신 및 충돌 방지 기능 구현 (WIP)
+[33m8405760[m HEAD@{43}: checkout: moving from dev to feat/lidar
+[33m8405760[m HEAD@{44}: checkout: moving from main to dev
+[33mab36e5f[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{45}: checkout: moving from feat/lidar to main
+[33mab36e5f[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{46}: checkout: moving from main to feat/lidar
+[33mab36e5f[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{47}: checkout: moving from dev to main
+[33m8405760[m HEAD@{48}: commit: 폴더 구조 정리
+[33me59864d[m HEAD@{49}: checkout: moving from e59864dd7dd4f204d91af1361470728d3aef0ecd to dev
+[33me59864d[m HEAD@{50}: checkout: moving from dev to origin/dev
+[33me59864d[m HEAD@{51}: commit (merge): Merge remote-tracking branch 'origin/feat/1' into dev
+[33m1b48513[m HEAD@{52}: checkout: moving from 1979b611bc77507673414859142c6fd599425d3e to dev
+[33m1979b61[m HEAD@{53}: checkout: moving from feat/wakeword to origin/dev
+[33m1979b61[m HEAD@{54}: checkout: moving from dev to feat/wakeword
+[33m1b48513[m HEAD@{55}: commit: ignore 에 iprepo 삭제
+[33m1979b61[m HEAD@{56}: checkout: moving from feat/lidar to dev
+[33m1979b61[m HEAD@{57}: checkout: moving from dev to feat/lidar
+[33m1979b61[m HEAD@{58}: commit: vivado 생성
+[33mab36e5f[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{59}: checkout: moving from ab36e5f513f72e6604fc1c9ceee47387ec0a57e9 to dev
+[33mab36e5f[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{60}: checkout: moving from dev to origin/dev
+[33mab36e5f[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{61}: checkout: moving from feat/lidar to dev
+[33mab36e5f[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{62}: reset: moving to HEAD^
+[33m621058a[m HEAD@{63}: checkout: moving from dev to feat/lidar
+[33mab36e5f[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{64}: checkout: moving from feat/lidar to dev
+[33m621058a[m HEAD@{65}: checkout: moving from dev to feat/lidar
+[33mab36e5f[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{66}: checkout: moving from feat/lidar to dev
+[33m621058a[m HEAD@{67}: commit: lidar top 생성
+[33mab36e5f[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{68}: checkout: moving from dev to feat/lidar
+[33mab36e5f[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{69}: checkout: moving from feat/lidar to dev
+[33mab36e5f[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{70}: checkout: moving from dev to feat/lidar
+[33mab36e5f[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{71}: reset: moving to HEAD^
+[33m8cd602e[m HEAD@{72}: checkout: moving from feat/lidar to dev
+[33mab36e5f[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{73}: checkout: moving from dev to feat/lidar
+[33m8cd602e[m HEAD@{74}: commit: dummy commit
+[33mab36e5f[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{75}: checkout: moving from feat/lidar to dev
+[33mab36e5f[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{76}: checkout: moving from dev to feat/lidar
+[33mab36e5f[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m HEAD@{77}: clone: from https://github.com/alsrb2992-ops/final_project.git
