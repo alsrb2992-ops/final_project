@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module servo_motor_controller(
+module servo_motor_controller (
     input clk,
     input reset_n,
     input [3:0] car_control,
@@ -9,28 +9,26 @@ module servo_motor_controller(
 
     // 1.5ms 가 중간
 
-    logic [$clog2(125000000)-1:0] count;  
+    logic [$clog2(125000000)-1:0] count;
     logic [$clog2(125000000)-1:0] period_set;
 
-    localparam pwm_period   = 50;   // Hz  
-    localparam center_ms    = 1.5;  // ms     
-    localparam left_ms      = 1.0;  // ms     
-    localparam right_ms     = 2.0;  // ms   
+    localparam pwm_period = 50;  // Hz  
+    localparam center_ms = 1.5;  // ms     
+    localparam left_ms = 1.0;  // ms     
+    localparam right_ms = 2.0;  // ms   
 
-    localparam pwm_period_cnt   = 125000000 / pwm_period;
-    localparam center_cnt       = center_ms * 1000000 / 8;     
-    localparam left_cnt         = left_ms * 1000000 / 8;    
-    localparam right_cnt        = right_ms * 1000000 / 8;    
+    localparam pwm_period_cnt = 125000000 / pwm_period;
+    localparam center_cnt = center_ms * 1000000 / 8;
+    localparam left_cnt = left_ms * 1000000 / 8;
+    localparam right_cnt = right_ms * 1000000 / 8;
 
-    always @(posedge clk or negedge reset_n ) begin
-        if(!reset_n) begin
+    always @(posedge clk or negedge reset_n) begin
+        if (!reset_n) begin
             count <= 0;
-        end
-        else begin
-            if(count > pwm_period_cnt) begin
+        end else begin
+            if (count > pwm_period_cnt) begin
                 count <= 0;
-            end
-            else begin
+            end else begin
                 count <= count + 1;
             end
         end
@@ -38,30 +36,29 @@ module servo_motor_controller(
 
     always_comb begin
         period_set = center_cnt;
-        case(car_control)
-            4'b0000 : begin             // S
+        case (car_control)
+            4'b0000: begin  // S
                 period_set = center_cnt;
             end
-            4'b0001 : begin             // F
+            4'b0001: begin  // F
                 period_set = center_cnt;
             end
-            4'b0010 : begin             // B
+            4'b0010: begin  // B
                 period_set = center_cnt;
             end
-            4'b0100 : begin             // R
+            4'b0100: begin  // R
                 period_set = right_cnt;
             end
-            4'b1000 : begin             // L
+            4'b1000: begin  // L
                 period_set = left_cnt;
             end
-        endcase    
+        endcase
     end
 
     always_ff @(posedge clk or negedge reset_n) begin
-        if(!reset_n) begin
+        if (!reset_n) begin
             pwm_servo <= 0;
-        end
-        else begin
+        end else begin
             pwm_servo <= (count < period_set);
         end
     end

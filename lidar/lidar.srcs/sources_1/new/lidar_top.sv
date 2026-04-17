@@ -3,12 +3,17 @@
 // YDLIDAR X4PRO 충돌방지 시스템 최상위 모듈
 // ============================================================
 module lidar_top #(
-    parameter CLK_FREQ        = 125_000_000,
-    parameter BAUD_RATE       = 128_000,
-    parameter FRONT_ANGLE_DEG = 9'd80,
-    parameter BRAKE_DIST_MM   = 14'd300,
-    parameter WARN_DIST_MM    = 14'd400,
-    parameter HOLD_MS         = 32'd200
+    parameter CLK_FREQ              = 125_000_000,
+    parameter BAUD_RATE             = 128_000,
+    parameter FRONT_ANGLE_DEG       = 9'd45,
+    parameter BEHIND_ANGLE_DEG      = 9'd40,
+    parameter RIGHT_START_ANGLE_DEG = 9'd45,
+    parameter RIGHT_END_ANGLE_DEG   = 9'd90,
+    parameter LEFT_START_ANGLE_DEG  = 9'd270,
+    parameter LEFT_END_ANGLE_DEG    = 9'd315,
+    parameter BRAKE_DIST_MM         = 14'd300,
+    parameter WARN_DIST_MM          = 14'd400,
+    parameter HOLD_MS               = 32'd200
 ) (
     input  logic clk,
     input  logic rst_n,
@@ -38,6 +43,8 @@ module lidar_top #(
     logic [ 8:0] angle_out;
     logic        angle_valid;
 
+    logic left_warning_signal, right_warning_signal;
+    logic [13:0] left_min_distance, right_min_distance;
     // distance_calc: si_valid +1클럭 → dist_valid
     // angle_calc:    si_valid +3클럭 → angle_valid (stage1, stage2 파이프라인)
     // 차이 2클럭 → dist 를 2클럭 딜레이
@@ -144,7 +151,7 @@ module lidar_top #(
         .distance_in(dist_out_d2),
         .is_flag(dist_is_d2),
         .angle_in(angle_out),
-        .data_valid(angle_valid  /* & cs_ok_d2 */),
+        .data_valid(angle_valid),
         .distance_out(filt_dist),
         .angle_out(filt_angle),
         .filtered_valid(filt_valid)
@@ -156,19 +163,29 @@ module lidar_top #(
         .round_done(round_done_sig)
     );
 
+
     collision_detector #(
-        .FRONT_ANGLE_DEG(FRONT_ANGLE_DEG),
-        .BRAKE_DIST_MM(BRAKE_DIST_MM),
-        .WARN_DIST_MM(WARN_DIST_MM)
+        .FRONT_ANGLE_DEG      (FRONT_ANGLE_DEG),
+        .BEHIND_ANGLE_DEG     (BEHIND_ANGLE_DEG),
+        .RIGHT_START_ANGLE_DEG(RIGHT_START_ANGLE_DEG),
+        .RIGHT_END_ANGLE_DEG  (RIGHT_END_ANGLE_DEG),
+        .LEFT_START_ANGLE_DEG (LEFT_START_ANGLE_DEG),
+        .LEFT_END_ANGLE_DEG   (LEFT_END_ANGLE_DEG),
+        .BRAKE_DIST_MM        (BRAKE_DIST_MM),
+        .WARN_DIST_MM         (WARN_DIST_MM)
     ) u_collision (
-        .clk(clk),
-        .rst_n(rst_n),
-        .distance(filt_dist),
-        .angle(filt_angle),
-        .data_valid(filt_valid),
-        .round_done(round_done_sig),
-        .brake_signal(brake_sig),
-        .warning_signal(warn_sig)
+        .clk                 (clk),
+        .rst_n               (rst_n),
+        .distance            (filt_dist),
+        .angle               (filt_angle),
+        .data_valid          (filt_valid),
+        .round_done          (round_done_sig),
+        .brake_signal        (brake_sig),
+        .warning_signal      (warn_sig),
+        .left_warning_signal (left_warning_signal),
+        .right_warning_signal(right_warning_signal),
+        .left_min_distance   (left_min_distance),
+        .right_min_distance  (right_min_distance)
     );
 
     brake_output #(
