@@ -60,37 +60,28 @@ module collision_detector #(
     // 전방 거리 수집 및 위험 판단
     // ------------------------------------------------
 
-    logic danger_in_round;
-    logic warn_in_round;
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            brake_signal    <= 1'b0;
-            warning_signal  <= 1'b0;
-            danger_in_round <= 1'b0;
-            warn_in_round   <= 1'b0;
+            brake_signal   <= 1'b0;
+            warning_signal <= 1'b0;
         end else begin
 
             // 1. 위험 감지 즉시 출력 + 누적
             if (data_valid && in_front_zone) begin
                 if (distance <= BRAKE_DIST_MM && distance != 14'd0) begin
-                    brake_signal    <= 1'b1;  // 즉시 출력
-                    warning_signal  <= 1'b1;
-                    danger_in_round <= 1'b1;
-                    warn_in_round   <= 1'b1;
+                    brake_signal   <= 1'b1;  // 즉시 출력
+                    warning_signal <= 1'b1;
                 end else if (distance <= WARN_DIST_MM && distance != 14'd0) begin
                     warning_signal <= 1'b1;  // 즉시 출력
-                    warn_in_round  <= 1'b1;
                 end
             end
 
 
             // 2. 1회전 완료 시 위험 없었으면 해제
             if (round_done) begin
-                if (!danger_in_round) brake_signal <= 1'b0;
-                if (!warn_in_round) warning_signal <= 1'b0;
-                danger_in_round <= 1'b0;  // 다음 회전 누적 리셋
-                warn_in_round   <= 1'b0;
+                brake_signal   <= 1'b0;
+                warning_signal <= 1'b0;
             end
         end
     end
@@ -101,8 +92,6 @@ module collision_detector #(
 
     logic [13:0] c_left_min_distance, c_right_min_distance;
     logic [13:0] n_left_min_distance, n_right_min_distance;
-    logic c_left_warning_round, n_left_warning_round;
-    logic c_right_warning_round, n_right_warning_round;
 
     logic c_left_warning_signal, n_left_warning_signal;
     logic c_right_warning_signal, n_right_warning_signal;
@@ -113,8 +102,6 @@ module collision_detector #(
         if (!rst_n) begin
             c_left_min_distance    <= 14'h3FFF;
             c_right_min_distance   <= 14'h3FFF;
-            c_left_warning_round   <= 0;
-            c_right_warning_round  <= 0;
             c_left_warning_signal  <= 0;
             c_right_warning_signal <= 0;
             c_left_zone_reg <= 0;
@@ -122,8 +109,6 @@ module collision_detector #(
         end else begin
             c_left_min_distance    <= n_left_min_distance;
             c_right_min_distance   <= n_right_min_distance;
-            c_left_warning_round   <= n_left_warning_round;
-            c_right_warning_round  <= n_right_warning_round;
             c_left_warning_signal  <= n_left_warning_signal;
             c_right_warning_signal <= n_right_warning_signal;
             c_left_zone_reg <= n_left_zone_reg;
@@ -134,8 +119,6 @@ module collision_detector #(
     always_comb begin  // 거리 측정 및 위험 감지
         n_left_min_distance    = c_left_min_distance;
         n_right_min_distance   = c_right_min_distance;
-        n_left_warning_round   = c_left_warning_round;
-        n_right_warning_round  = c_right_warning_round;
         n_left_warning_signal  = c_left_warning_signal;
         n_right_warning_signal = c_right_warning_signal;
         n_left_zone_reg = c_left_zone_reg;
@@ -157,12 +140,10 @@ module collision_detector #(
 
             end
             if (c_left_min_distance < SIDE_DIST_MM && c_left_zone_reg ) begin // 왼쪽 위험 판단
-                n_left_warning_round  = 1'b1;
                 n_left_warning_signal = 1'b1;
             end
 
             if (c_right_min_distance < SIDE_DIST_MM && c_right_zone_reg) begin // 오른쪽 위험 판단
-                n_right_warning_round  = 1'b1;
                 n_right_warning_signal = 1'b1;
             end
         end
@@ -170,12 +151,10 @@ module collision_detector #(
 
 
         if (round_done) begin
-            n_left_min_distance  = c_left_warning_round ? SIDE_DIST_MM -1 :14'h3FFF;
-            n_right_min_distance = c_right_warning_round? SIDE_DIST_MM -1 : 14'h3FFF;
-            if (~c_right_warning_round) n_right_warning_signal = 1'b0;
-            if (~c_left_warning_round) n_left_warning_signal = 1'b0;
-            n_left_warning_round  = 1'b0;
-            n_right_warning_round = 1'b0;
+            n_left_min_distance    = 14'h3FFF;
+            n_right_min_distance   = 14'h3FFF;
+            n_right_warning_signal = 1'b0;
+            n_left_warning_signal  = 1'b0;
         end
 
     end
