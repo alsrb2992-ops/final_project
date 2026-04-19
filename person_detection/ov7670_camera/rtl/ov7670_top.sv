@@ -10,8 +10,13 @@
 module ov7670_top(
     input clk, rstn,
 
+    // HDMI 출력
     output       hdmi_tx_clk_p, hdmi_tx_clk_n,
     output [2:0] hdmi_tx_p, hdmi_tx_n,
+
+    // SCCB 통신 (OV7670)
+    output cam_scl,
+    inout  cam_sda,
 
     output [3:0] led
     );
@@ -25,6 +30,9 @@ module ov7670_top(
     wire [9:0] pxl_x, pxl_y;
 
     wire [7:0] red, grn, blue;
+
+    wire cam_scl_out, cam_sda_out;
+    wire sccb_cfgDone;
 
     // ================ 클럭 생성 =================
     hdmi_clk_gen u_hdmi_clk_gen (.clk_in1(clk), .clk_out1(clk_pxl_25m), .reset(!rstn), .locked(locked_pxl));
@@ -46,9 +54,43 @@ module ov7670_top(
         .aRst(!rstn), .PixelClk(clk_pxl_25m), .SerialClk(clk),
         .vid_pData({red, grn, blue}), .vid_pVDE(de), .vid_pHSync(hsync), .vid_pVSync(vsync));
 
+    // ================ SCCB 통신 ================
+    sccb_top u_sccb (
+        .clk(clk), .rstn(rstn & locked_pxl),
+        .scl(cam_scl_out), .sda(cam_sda_out),
+        .cfgDone(sccb_cfgDone));
+
+    // SCCB 핀 연결 (Open-drain)
+    assign cam_scl = cam_scl_out;
+    assign cam_sda = cam_sda_out;
+
+    // ================ 디버그 LED ================
+    localparam STRETCH = 12_500_000;
+    logic [$clog2(STRETCH)-1:0] cnt;
+
+    logic sccb_cfgDone_stretch;
+
+    always_ff @(posedge clk or negedge rstn) begin
+        if (!rstn) begin
+            cnt <= 0;
+            sccb_cfgDone_stretch <= 0;
+        end
+        else if (sccb_cfgDone) begin
+            cnt <= STRETCH - 1;
+            sccb_cfgDone_stretch <= 1'b1;
+        end
+        else if (cnt > 0) begin
+            cnt <= cnt - 1;
+            sccb_cfgDone_stretch <= 1'b1;
+        end
+        else begin
+            sccb_cfgDone_stretch <= 1'b0;
+        end
+    end
+
     assign led[0] = locked_pxl;
     assign led[1] = de;
-    assign led[2] = hsync;
+    assign led[2] = sccb_cfgDone_stretch;
     assign led[3] = vsync;
 
 endmodule

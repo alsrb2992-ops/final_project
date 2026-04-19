@@ -30,10 +30,10 @@ set_property -dict { PACKAGE_PIN G15   IOSTANDARD LVCMOS33 } [get_ports rstn]; #
 
 
 ##LEDs
-set_property -dict { PACKAGE_PIN M14   IOSTANDARD LVCMOS33 } [get_ports {led[0]}];   # LED[0]: 초기화 완료 (init_done)
-set_property -dict { PACKAGE_PIN M15   IOSTANDARD LVCMOS33 } [get_ports {led[1]}];   # LED[1]: 캡처 중 (captruring)
-set_property -dict { PACKAGE_PIN G14   IOSTANDARD LVCMOS33 } [get_ports {led[2]}];  # LED[2]: 프레임 완료 (깜빡임) (frame_done)
-set_property -dict { PACKAGE_PIN D18   IOSTANDARD LVCMOS33 } [get_ports {led[3]}]; # LED[3]: 데이터 유효 (깜빡임) (frame_valid)
+set_property -dict { PACKAGE_PIN M14   IOSTANDARD LVCMOS33 } [get_ports {led[0]}]; # LED[0]
+set_property -dict { PACKAGE_PIN M15   IOSTANDARD LVCMOS33 } [get_ports {led[1]}]; # LED[1]
+set_property -dict { PACKAGE_PIN G14   IOSTANDARD LVCMOS33 } [get_ports {led[2]}]; # LED[2]
+set_property -dict { PACKAGE_PIN D18   IOSTANDARD LVCMOS33 } [get_ports {led[3]}]; # LED[3]
 
 
 ##RGB LED 5 (Zybo Z7-20 only)
@@ -122,12 +122,15 @@ set_property -dict { PACKAGE_PIN B19   IOSTANDARD TMDS_33     } [get_ports {hdmi
 #set_property -dict { PACKAGE_PIN W8    IOSTANDARD LVCMOS33     } [get_ports ov_pclk];  # JB2: Pixel Clock (입력)
 #set_property -dict { PACKAGE_PIN U7    IOSTANDARD LVCMOS33     } [get_ports ov_href];  # JB3: Horizontal Ref
 #set_property -dict { PACKAGE_PIN V7    IOSTANDARD LVCMOS33     } [get_ports ov_vsync]; # JB4: Vertical Sync
-#set_property -dict { PACKAGE_PIN Y7    IOSTANDARD LVCMOS33 PULLUP true} [get_ports ov_sda];   # JB7: SCCB Data
-#set_property -dict { PACKAGE_PIN Y6    IOSTANDARD LVCMOS33 PULLUP true} [get_ports ov_scl];   # JB8: SCCB Clock
+set_property -dict { PACKAGE_PIN Y7    IOSTANDARD LVCMOS33     } [get_ports cam_sda]; # JB7: SCCB Data
+set_property -dict { PACKAGE_PIN Y6    IOSTANDARD LVCMOS33     } [get_ports cam_scl]; # JB8: SCCB Clock
 #set_property -dict { PACKAGE_PIN V6    IOSTANDARD LVCMOS33     } [get_ports { jb[6] }]; #IO_L22P_T3_13 Sch=jb_p[4]             
 #set_property -dict { PACKAGE_PIN W6    IOSTANDARD LVCMOS33     } [get_ports { jb[7] }]; #IO_L22N_T3_13 Sch=jb_n[4]
-                                                                                                                                 
-                                                                                                                                 
+
+set_property PULLUP TRUE [get_ports cam_sda]
+set_property PULLUP TRUE [get_ports cam_scl]
+
+
 ##Pmod Header JC                                                                                                                  
 #set_property -dict { PACKAGE_PIN V15   IOSTANDARD LVCMOS33     } [get_ports {ov_data[0]}]; # JC1: D0
 #set_property -dict { PACKAGE_PIN W15   IOSTANDARD LVCMOS33     } [get_ports {ov_data[1]}]; # JC2: D1
