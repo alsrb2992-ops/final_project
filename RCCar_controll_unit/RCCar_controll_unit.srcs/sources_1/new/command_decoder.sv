@@ -2,13 +2,12 @@
 `include "RCcar_define.vh"
 
 module command_decoder (
-    input logic       clk,
-    input logic       reset_n,
-    input logic       rx_done,
+    input logic clk,
+    input logic reset_n,
+    input logic rx_done,
     input logic [7:0] rx_data,
-    input logic       auto_mode,
-    input logic       brake_signal, // 자동 제어 시 제동 신호 입력
-
+    input logic auto_mode,
+    input logic brake_signal,  // 자동 제어 시 제동 신호 입력
     input logic [2:0] direction_degree, // 거리에 따라 자동으로 제어할 때 사용할 입력
     output logic [3:0] car_control
 );

@@ -8,7 +8,6 @@ module RCCar_controll_unit (
     input  logic       brake_signal,
     input  logic       warning_signal,
     input  logic [2:0] direction_degree,
-    input  logic       side_warning_signal,
     output logic       pwm_servo,
     output logic       pwm_dc,
     output logic [1:0] dir_dc
@@ -34,6 +33,7 @@ module RCCar_controll_unit (
         .rx_data(rx_data),
         .rx_done(rx_done),
         .auto_mode(auto_mode),
+        .brake_signal(brake_signal),
         .direction_degree(direction_degree),
         .car_control(car_control)
     );
