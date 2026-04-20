@@ -37,30 +37,50 @@ module dcmotor_controller(
     always_comb begin
         period_set = 0;
         dir_set = 2'b00;
-        if(!stop) begin
-            case(car_control)
-                4'b0000 : begin             // S
-                    period_set = 0;
-                    dir_set = 2'b00;
-                end
-                4'b0001 : begin             // F
+        case(car_control)
+            4'b0000 : begin // 정지
+                period_set = 0;
+                dir_set = 2'b00;
+            end
+            4'b0001 : begin // 직진
+                if(!stop) begin
                     period_set = forward_back_cnt;
                     dir_set = 2'b01;
                 end
-                4'b0010 : begin             // B
-                    period_set = forward_back_cnt;
-                    dir_set = 2'b10;
-                end
-                4'b0100 : begin             // R
+            end
+            4'b0010 : begin // 후진
+                period_set = forward_back_cnt;
+                dir_set = 2'b10;
+            end
+            4'b0011 : begin // 좌회전
+                period_set = 0;
+                dir_set = 2'b00;
+            end
+            4'b0100 : begin // 우회전
+                period_set = 0;
+                dir_set = 2'b00;
+            end
+            4'b0101 : begin // 직진 + 좌회전
+                if(!stop) begin
                     period_set = turn_cnt;
                     dir_set = 2'b01;
                 end
-                4'b1000 : begin             // L
+            end
+            4'b0110 : begin // 직진 + 우회전
+                if(!stop) begin
                     period_set = turn_cnt;
                     dir_set = 2'b01;
                 end
-            endcase   
-        end           
+            end
+            4'b0111 : begin // 후진 + 좌회전
+                period_set = turn_cnt;
+                dir_set = 2'b10;
+            end
+            4'b1000 : begin // 후진 + 우회전
+                period_set = turn_cnt;
+                dir_set = 2'b10;
+            end
+        endcase            
     end
 
     always_ff @(posedge clk or negedge reset_n) begin

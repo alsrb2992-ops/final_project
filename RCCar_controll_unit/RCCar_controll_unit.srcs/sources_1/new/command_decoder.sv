@@ -14,20 +14,32 @@ module command_decoder(
             car_control <= car_control;
             if(rx_done) begin
                 case(rx_data)
-                    "F" : begin
+                    "S" : begin // 정지
+                        car_control <= 4'b0000;
+                    end
+                    "F" : begin // 직진
                         car_control <= 4'b0001; 
                     end
-                    "B" : begin
+                    "B" : begin // 후진
                         car_control <= 4'b0010; 
                     end
-                    "R" : begin
+                    "L" : begin // 좌회전
+                        car_control <= 4'b0011; 
+                    end
+                    "R" : begin // 우회전
                         car_control <= 4'b0100; 
                     end
-                    "L" : begin
-                        car_control <= 4'b1000; 
+                    "G" : begin // 직진 + 좌회전
+                        car_control <= 4'b0101; 
                     end
-                    "S" : begin
-                        car_control <= 0;
+                    "H" : begin // 직진 + 우회전
+                        car_control <= 4'b0110; 
+                    end
+                    "I" : begin // 후진 + 좌회전
+                        car_control <= 4'b0111; 
+                    end
+                    "J" : begin // 후진 + 우회전
+                        car_control <= 4'b1000; 
                     end
                 endcase
             end

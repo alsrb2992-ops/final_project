@@ -39,20 +39,32 @@ module servo_motor_controller(
     always_comb begin
         period_set = center_cnt;
         case(car_control)
-            4'b0000 : begin             // S
+            4'b0000 : begin // 정지
                 period_set = center_cnt;
             end
-            4'b0001 : begin             // F
+            4'b0001 : begin // 직진
                 period_set = center_cnt;
             end
-            4'b0010 : begin             // B
+            4'b0010 : begin // 후진
                 period_set = center_cnt;
             end
-            4'b0100 : begin             // R
+            4'b0011 : begin // 좌회전
+                period_set = left_cnt;
+            end
+            4'b0100 : begin // 우회전
                 period_set = right_cnt;
             end
-            4'b1000 : begin             // L
+            4'b0101 : begin // 직진 + 좌회전
                 period_set = left_cnt;
+            end
+            4'b0110 : begin // 직진 + 우회전
+                period_set = right_cnt;
+            end
+            4'b0111 : begin // 후진 + 좌회전
+                period_set = left_cnt;
+            end
+            4'b1000 : begin // 후진 + 우회전
+                period_set = right_cnt;
             end
         endcase    
     end
