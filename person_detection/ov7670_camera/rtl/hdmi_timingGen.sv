@@ -1,5 +1,5 @@
 // ===============================================================
-// vga_timingGen.sv: VGA 640x480 @ 60Hz 타이밍 생성기
+// hdmi_timingGen.sv: HDMI 640x480 @ 60Hz 타이밍 생성기
 // ---------------------------------------------------------------
 // 기능:
 //     - HSYNC, VSYNC, DE(Data Enable) 생성
@@ -16,7 +16,7 @@
 //     - pxl_x, pxl_y: 현재 픽셀 좌표 (0-639, 0-479)
 // ===============================================================
 
-module vga_timingGen(
+module hdmi_timingGen(
     input clk, rstn,
 
     output       hsync, vsync,

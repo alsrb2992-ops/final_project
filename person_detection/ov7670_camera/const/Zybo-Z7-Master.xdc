@@ -118,28 +118,29 @@ set_property -dict { PACKAGE_PIN B19   IOSTANDARD TMDS_33     } [get_ports {hdmi
  
 
 ##Pmod Header JB (Zybo Z7-20 only)
-#set_property -dict { PACKAGE_PIN V8    IOSTANDARD LVCMOS33     } [get_ports ov_xclk];  # JB1: Master Clock (출력)
-#set_property -dict { PACKAGE_PIN W8    IOSTANDARD LVCMOS33     } [get_ports ov_pclk];  # JB2: Pixel Clock (입력)
-#set_property -dict { PACKAGE_PIN U7    IOSTANDARD LVCMOS33     } [get_ports ov_href];  # JB3: Horizontal Ref
-#set_property -dict { PACKAGE_PIN V7    IOSTANDARD LVCMOS33     } [get_ports ov_vsync]; # JB4: Vertical Sync
-set_property -dict { PACKAGE_PIN Y7    IOSTANDARD LVCMOS33     } [get_ports cam_sda]; # JB7: SCCB Data
-set_property -dict { PACKAGE_PIN Y6    IOSTANDARD LVCMOS33     } [get_ports cam_scl]; # JB8: SCCB Clock
+set_property -dict { PACKAGE_PIN V8    IOSTANDARD LVCMOS33     } [get_ports xclk];  # JB1: Master Clock (출력)
+set_property -dict { PACKAGE_PIN W8    IOSTANDARD LVCMOS33     } [get_ports pclk];  # JB2: Pixel Clock (입력)
+set_property -dict { PACKAGE_PIN U7    IOSTANDARD LVCMOS33     } [get_ports href];  # JB3: Horizontal Ref
+set_property -dict { PACKAGE_PIN V7    IOSTANDARD LVCMOS33     } [get_ports vsync]; # JB4: Vertical Sync
+set_property -dict { PACKAGE_PIN Y7    IOSTANDARD LVCMOS33     } [get_ports sda];   # JB7: SCCB Data
+set_property -dict { PACKAGE_PIN Y6    IOSTANDARD LVCMOS33     } [get_ports scl];   # JB8: SCCB Clock
 #set_property -dict { PACKAGE_PIN V6    IOSTANDARD LVCMOS33     } [get_ports { jb[6] }]; #IO_L22P_T3_13 Sch=jb_p[4]             
 #set_property -dict { PACKAGE_PIN W6    IOSTANDARD LVCMOS33     } [get_ports { jb[7] }]; #IO_L22N_T3_13 Sch=jb_n[4]
 
-set_property PULLUP TRUE [get_ports cam_sda]
-set_property PULLUP TRUE [get_ports cam_scl]
+set_property CLOCK_BUFFER_TYPE NONE [get_ports pclk]
+set_property PULLUP TRUE [get_ports sda]
+set_property PULLUP TRUE [get_ports scl]
 
 
 ##Pmod Header JC                                                                                                                  
-#set_property -dict { PACKAGE_PIN V15   IOSTANDARD LVCMOS33     } [get_ports {ov_data[0]}]; # JC1: D0
-#set_property -dict { PACKAGE_PIN W15   IOSTANDARD LVCMOS33     } [get_ports {ov_data[1]}]; # JC2: D1
-#set_property -dict { PACKAGE_PIN T11   IOSTANDARD LVCMOS33     } [get_ports {ov_data[2]}]; # JC3: D2
-#set_property -dict { PACKAGE_PIN T10   IOSTANDARD LVCMOS33     } [get_ports {ov_data[3]}]; # JC4: D3
-#set_property -dict { PACKAGE_PIN W14   IOSTANDARD LVCMOS33     } [get_ports {ov_data[4]}]; # JC7: D4
-#set_property -dict { PACKAGE_PIN Y14   IOSTANDARD LVCMOS33     } [get_ports {ov_data[5]}]; # JC8: D5
-#set_property -dict { PACKAGE_PIN T12   IOSTANDARD LVCMOS33     } [get_ports {ov_data[6]}]; # JC9: D6
-#set_property -dict { PACKAGE_PIN U12   IOSTANDARD LVCMOS33     } [get_ports {ov_data[7]}]; # JC10: D7
+set_property -dict { PACKAGE_PIN V15   IOSTANDARD LVCMOS33     } [get_ports {data[0]}]; # JC1: D0
+set_property -dict { PACKAGE_PIN W15   IOSTANDARD LVCMOS33     } [get_ports {data[1]}]; # JC2: D1
+set_property -dict { PACKAGE_PIN T11   IOSTANDARD LVCMOS33     } [get_ports {data[2]}]; # JC3: D2
+set_property -dict { PACKAGE_PIN T10   IOSTANDARD LVCMOS33     } [get_ports {data[3]}]; # JC4: D3
+set_property -dict { PACKAGE_PIN W14   IOSTANDARD LVCMOS33     } [get_ports {data[4]}]; # JC7: D4
+set_property -dict { PACKAGE_PIN Y14   IOSTANDARD LVCMOS33     } [get_ports {data[5]}]; # JC8: D5
+set_property -dict { PACKAGE_PIN T12   IOSTANDARD LVCMOS33     } [get_ports {data[6]}]; # JC9: D6
+set_property -dict { PACKAGE_PIN U12   IOSTANDARD LVCMOS33     } [get_ports {data[7]}]; # JC10: D7
                                                                                                                                  
                                                                                                                                  
 ##Pmod Header JD                                                                                                                  
