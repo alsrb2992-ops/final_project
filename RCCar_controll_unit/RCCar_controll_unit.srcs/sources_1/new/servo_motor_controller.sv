@@ -1,4 +1,5 @@
 `timescale 1ns / 1ps
+`include "RCcar_define.vh"
 
 module servo_motor_controller (
     input clk,
@@ -14,13 +15,20 @@ module servo_motor_controller (
 
     localparam pwm_period = 50;  // Hz  
     localparam center_ms = 1.5;  // ms     
-    localparam left_ms = 1.0;  // ms     
-    localparam right_ms = 2.0;  // ms   
+    localparam big_left_ms = 1.0;  // ms     
+    localparam small_left_ms = 1.25;  // ms     
+
+    localparam big_right_ms = 2.0;  // ms   
+    localparam small_right_ms = 1.75;  // ms   
 
     localparam pwm_period_cnt = 125000000 / pwm_period;
     localparam center_cnt = center_ms * 1000000 / 8;
-    localparam left_cnt = left_ms * 1000000 / 8;
-    localparam right_cnt = right_ms * 1000000 / 8;
+
+    localparam big_left_cnt = big_left_ms * 1000000 / 8;
+    localparam small_left_cnt = small_left_ms * 1000000 / 8;
+
+    localparam big_right_cnt = big_right_ms * 1000000 / 8;
+    localparam small_right_cnt = small_right_ms * 1000000 / 8;
 
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
@@ -37,21 +45,28 @@ module servo_motor_controller (
     always_comb begin
         period_set = center_cnt;
         case (car_control)
-            4'b0000: begin  // S
+            `RC_STOP: begin  // S
                 period_set = center_cnt;
             end
-            4'b0001: begin  // F
+            `RC_FORWARD: begin  // F
                 period_set = center_cnt;
             end
-            4'b0010: begin  // B
+            `RC_BACKWARD: begin  // B
                 period_set = center_cnt;
             end
-            4'b0100: begin  // R
-                period_set = right_cnt;
+            `RC_TURN_RIGHT_BIG: begin  // R
+                period_set = big_right_cnt;
             end
-            4'b1000: begin  // L
-                period_set = left_cnt;
+            `RC_TURN_RIGHT_SMALL: begin  // R
+                period_set = small_right_cnt;
             end
+            `RC_TURN_LEFT_BIG: begin  // L
+                period_set = big_left_cnt;
+            end
+            `RC_TURN_LEFT_SMALL: begin  // L
+                period_set = small_left_cnt;
+            end
+
         endcase
     end
 

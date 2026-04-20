@@ -13,6 +13,9 @@
 // 감지 즉시 brake/warning 출력
 // 해제는 1회전 완료(round_done) 후 위험 없을 때만
 // ============================================================
+
+`include "lidar_define.vh"
+
 module collision_detector #(
     parameter FRONT_ANGLE_DEG       = 9'd45,
     parameter BEHIND_ANGLE_DEG      = 9'd40,
@@ -21,7 +24,7 @@ module collision_detector #(
     parameter LEFT_START_ANGLE_DEG  = 9'd270,
     parameter LEFT_END_ANGLE_DEG    = 9'd315,
     parameter BRAKE_DIST_MM         = 14'd300,
-    parameter WARN_DIST_MM          = 14'd400,
+    parameter WARN_DIST_MM          = 14'd600,
     parameter SIDE_DIST_MM          = 14'd300
 ) (
     input logic clk,
@@ -34,8 +37,7 @@ module collision_detector #(
 
     output logic brake_signal,
     output logic warning_signal,
-    output logic left_warning_signal,
-    output logic right_warning_signal,
+    output logic side_warning_signal,
     output logic [13:0] left_min_distance,
     output logic [13:0] right_min_distance
 );
@@ -97,6 +99,7 @@ module collision_detector #(
     logic c_right_warning_signal, n_right_warning_signal;
     logic c_left_zone_reg, n_left_zone_reg;
     logic c_right_zone_reg, n_right_zone_reg;
+    logic c_data_valid_reg, n_data_valid_reg;
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -106,6 +109,7 @@ module collision_detector #(
             c_right_warning_signal <= 0;
             c_left_zone_reg <= 0;
             c_right_zone_reg <= 0;
+            c_data_valid_reg <= 0;
         end else begin
             c_left_min_distance    <= n_left_min_distance;
             c_right_min_distance   <= n_right_min_distance;
@@ -113,6 +117,7 @@ module collision_detector #(
             c_right_warning_signal <= n_right_warning_signal;
             c_left_zone_reg <= n_left_zone_reg;
             c_right_zone_reg <= n_right_zone_reg;
+            c_data_valid_reg <= n_data_valid_reg;
         end
     end
 
@@ -121,34 +126,30 @@ module collision_detector #(
         n_right_min_distance   = c_right_min_distance;
         n_left_warning_signal  = c_left_warning_signal;
         n_right_warning_signal = c_right_warning_signal;
-        n_left_zone_reg = c_left_zone_reg;
-        n_right_zone_reg = c_right_zone_reg;
+        n_left_zone_reg = left_zone;
+        n_right_zone_reg = right_zone;
+        n_data_valid_reg = data_valid;
 
         if (data_valid) begin
-            n_left_zone_reg  = left_zone;
-            n_right_zone_reg = right_zone;
             if (left_zone) begin  // 왼쪽 범위
                 if (distance < c_left_min_distance && distance != 14'd0) begin // 왼쪽 최솟값 수집
                     n_left_min_distance = distance;
                 end
 
-
             end else if (right_zone) begin  // 오른쪽 범위
                 if (distance < c_right_min_distance && distance != 14'd0) begin // 오른쪽 최솟값 수집
                     n_right_min_distance = distance;
                 end
-
-            end
-            if (c_left_min_distance < SIDE_DIST_MM && c_left_zone_reg ) begin // 왼쪽 위험 판단
-                n_left_warning_signal = 1'b1;
-            end
-
-            if (c_right_min_distance < SIDE_DIST_MM && c_right_zone_reg) begin // 오른쪽 위험 판단
-                n_right_warning_signal = 1'b1;
             end
         end
 
 
+
+        if (c_left_min_distance < SIDE_DIST_MM && c_right_min_distance < c_left_min_distance ) begin // 왼쪽 위험 판단
+            n_right_warning_signal = 1'b1;
+        end else if (c_right_min_distance < SIDE_DIST_MM && c_left_min_distance < c_right_min_distance) begin // 오른쪽 위험 판단
+            n_left_warning_signal = 1'b1;
+        end
 
         if (round_done) begin
             n_left_min_distance    = 14'h3FFF;
@@ -159,7 +160,7 @@ module collision_detector #(
 
     end
 
-
+    assign side_warning_signal = c_left_warning_signal || c_right_warning_signal;
     assign left_warning_signal = c_left_warning_signal;
     assign right_warning_signal = c_right_warning_signal;
     assign left_min_distance = c_left_min_distance;

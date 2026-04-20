@@ -12,14 +12,19 @@ module lidar_top #(
     parameter LEFT_START_ANGLE_DEG  = 9'd270,
     parameter LEFT_END_ANGLE_DEG    = 9'd315,
     parameter BRAKE_DIST_MM         = 14'd300,
-    parameter WARN_DIST_MM          = 14'd400,
-    parameter HOLD_MS               = 32'd200
+    parameter WARN_DIST_MM          = 14'd600,
+    parameter HOLD_MS               = 32'd200,
+    parameter SIDE_HOLD_MS          = 32'd100,
+    parameter TURN_THRESHOLD_MM     = 14'd800,
+    parameter BIG_TURN_DIFF_MM      = 14'd100
 ) (
-    input  logic clk,
-    input  logic rst_n,
-    input  logic lidar_rx,
-    output logic brake_gpio,
-    output logic warning_led
+    input  logic       clk,
+    input  logic       rst_n,
+    input  logic       lidar_rx,
+    output logic       brake_gpio,
+    output logic       warning_led,
+    output logic       side_warning_signal_gpio,
+    output logic [2:0] direction_degree_gpio
 );
 
     logic [ 7:0] uart_data;
@@ -43,7 +48,7 @@ module lidar_top #(
     logic [ 8:0] angle_out;
     logic        angle_valid;
 
-    logic left_warning_signal, right_warning_signal;
+    logic        side_warning_signal;
     logic [13:0] left_min_distance, right_min_distance;
     // distance_calc: si_valid +1클럭 → dist_valid
     // angle_calc:    si_valid +3클럭 → angle_valid (stage1, stage2 파이프라인)
@@ -55,9 +60,11 @@ module lidar_top #(
     logic [13:0] filt_dist;
     logic [ 8:0] filt_angle;
     logic        filt_valid;
-    logic        brake_sig;
-    logic        warn_sig;
+    logic        brake_signal;
+    logic        warning_signal;
     logic        round_done_sig;
+
+    logic [ 2:0] direction_degree;
 
     uart_rx_lidar #(
         .CLK_FREQ (CLK_FREQ),
@@ -174,30 +181,45 @@ module lidar_top #(
         .BRAKE_DIST_MM        (BRAKE_DIST_MM),
         .WARN_DIST_MM         (WARN_DIST_MM)
     ) u_collision (
-        .clk                 (clk),
-        .rst_n               (rst_n),
-        .distance            (filt_dist),
-        .angle               (filt_angle),
-        .data_valid          (filt_valid),
-        .round_done          (round_done_sig),
-        .brake_signal        (brake_sig),
-        .warning_signal      (warn_sig),
-        .left_warning_signal (left_warning_signal),
-        .right_warning_signal(right_warning_signal),
-        .left_min_distance   (left_min_distance),
-        .right_min_distance  (right_min_distance)
+        .clk                (clk),
+        .rst_n              (rst_n),
+        .distance           (filt_dist),
+        .angle              (filt_angle),
+        .data_valid         (filt_valid),
+        .round_done         (round_done_sig),
+        .brake_signal       (brake_signal),
+        .warning_signal     (warning_signal),
+        .side_warning_signal(side_warning_signal),
+        .left_min_distance  (left_min_distance),
+        .right_min_distance (right_min_distance)
+    );
+
+    left_right_comparator #(
+        .TURN_THRESHOLD_MM(TURN_THRESHOLD_MM),
+        .BIG_TURN_DIFF_MM (BIG_TURN_DIFF_MM)
+    ) u_left_right_comparator (
+        .left_min_distance (left_min_distance),
+        .right_min_distance(right_min_distance),
+        .warning_signal    (warning_signal),
+        .direction_degree  (direction_degree)
     );
 
     brake_output #(
         .CLK_FREQ(CLK_FREQ),
-        .HOLD_MS (HOLD_MS)
+        .HOLD_MS(HOLD_MS),
+        .SIDE_HOLD_MS(SIDE_HOLD_MS)
     ) u_brake (
         .clk(clk),
         .rst_n(rst_n),
-        .brake_signal(brake_sig),
-        .warning_signal(warn_sig),
+        .round_done(round_done_sig),
+        .brake_signal(brake_signal),
+        .warning_signal(warning_signal),
+        .side_warning_signal(side_warning_signal),
+        .direction_degree(direction_degree),
         .brake_gpio(brake_gpio),
-        .warning_led(warning_led)
+        .warning_led(warning_led),
+        .side_warning_signal_gpio(side_warning_signal_gpio),
+        .direction_degree_gpio(direction_degree_gpio)
     );
 
 endmodule
