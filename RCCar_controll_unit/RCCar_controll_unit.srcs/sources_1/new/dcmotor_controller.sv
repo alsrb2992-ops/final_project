@@ -35,30 +35,44 @@ module dcmotor_controller (
     always_comb begin
         period_set = 0;
         dir_set = 2'b00;
-        if (!stop) begin
-            case (car_control)
-                `RC_STOP: begin  // S
-                    period_set = 0;
-                    dir_set = 2'b00;
-                end
-                `RC_FORWARD: begin  // F
-                    period_set = forward_back_cnt;
-                    dir_set = 2'b01;
-                end
-                `RC_BACKWARD: begin  // B
-                    period_set = forward_back_cnt;
-                    dir_set = 2'b10;
-                end
-                `RC_TURN_RIGHT_BIG, `RC_TURN_RIGHT_SMALL: begin  // R
-                    period_set = turn_cnt;
-                    dir_set = 2'b01;
-                end
-                `RC_TURN_LEFT_BIG, `RC_TURN_LEFT_SMALL: begin  // L
-                    period_set = turn_cnt;
-                    dir_set = 2'b01;
-                end
-            endcase
-        end
+        case(car_control)
+            `RC_STOP : begin // 정지
+                period_set = 0;
+                dir_set = 2'b00;
+            end
+            `RC_FORWARD : begin // 직진
+                period_set = forward_back_cnt;
+                dir_set = 2'b01;
+            end
+            `RC_BACKWARD : begin // 후진
+                period_set = forward_back_cnt;
+                dir_set = 2'b10;
+            end
+            `RC_LEFT : begin // 좌회전
+                period_set = 0;
+                dir_set = 2'b00;
+            end
+            `RC_RIGHT : begin // 우회전
+                period_set = 0;
+                dir_set = 2'b00;
+            end
+            `RC_FORWARD_LEFT, `RC_TURN_LEFT_BIG, `RC_TURN_LEFT_SMALL : begin // 직진 + 좌회전
+                period_set = turn_cnt;
+                dir_set = 2'b01;
+            end
+            `RC_FORWARD_RIGHT, `RC_TURN_RIGHT_BIG, `RC_TURN_RIGHT_SMALL : begin // 직진 + 우회전
+                period_set = turn_cnt;
+                dir_set = 2'b01;
+            end
+            `RC_BACKWARD_LEFT : begin // 후진 + 좌회전
+                period_set = turn_cnt;
+                dir_set = 2'b10;
+            end
+            `RC_BACKWARD_RIGHT : begin // 후진 + 우회전
+                period_set = turn_cnt;
+                dir_set = 2'b10;
+            end
+        endcase             
     end
 
     always_ff @(posedge clk or negedge reset_n) begin

@@ -32,6 +32,7 @@ module RCCar_controll_unit (
         .reset_n(reset_n),
         .rx_data(rx_data),
         .rx_done(rx_done),
+        .brake_signal(brake_signal),
         .auto_mode(auto_mode),
         .brake_signal(brake_signal),
         .direction_degree(direction_degree),
@@ -42,6 +43,7 @@ module RCCar_controll_unit (
         .clk(clk),
         .reset_n(reset_n),
         .car_control(car_control),
+        .auto_mode(auto_mode),
         .pwm_servo(pwm_servo)
     );
 
@@ -50,6 +52,7 @@ module RCCar_controll_unit (
         .reset_n(reset_n),
         .car_control(car_control),
         .stop(stop),
+        .auto_mode(auto_mode),
         .pwm_dc(pwm_dc),
         .dir_dc(dir_dc)
     );
