@@ -1,7 +1,10 @@
 `timescale 1ns / 1ps
 `include "RCcar_define.vh"
 
-module servo_motor_controller (
+module servo_motor_controller #(
+    parameter CLK_FREQ = 125_000_000,
+    parameter MAX_CHANGE_PER_CYCLE = 125000000 * 20 / 1000 / 8 // 20ms마다 최대 변화량
+) (
     input clk,
     input reset_n,
     input [3:0] car_control,
@@ -10,8 +13,9 @@ module servo_motor_controller (
 
     // 1.5ms 가 중간
 
-    logic [$clog2(125000000)-1:0] count;
-    logic [$clog2(125000000)-1:0] period_set;
+    logic [$clog2(CLK_FREQ)-1:0] count;
+    logic [$clog2(CLK_FREQ)-1:0] period_set;
+    logic [$clog2(CLK_FREQ)-1:0] current_period;
 
     localparam pwm_period = 50;  // Hz  
     localparam center_ms = 1.5;  // ms     
@@ -21,7 +25,7 @@ module servo_motor_controller (
     localparam big_right_ms = 2.0;  // ms   
     localparam small_right_ms = 1.75;  // ms   
 
-    localparam pwm_period_cnt = 125000000 / pwm_period;
+    localparam pwm_period_cnt = CLK_FREQ / pwm_period;
     localparam center_cnt = center_ms * 1000000 / 8;
 
     localparam big_left_cnt = big_left_ms * 1000000 / 8;
@@ -78,9 +82,37 @@ module servo_motor_controller (
 
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
+            current_period <= center_cnt;  // 초기값: 중앙
+        end else begin
+            // PWM 주기 시작 시점에만 업데이트 (20ms마다)
+            if (count == 0) begin
+                if (period_set > current_period) begin
+                    // 목표가 현재보다 큼 → 증가 방향
+                    if (period_set - current_period > MAX_CHANGE_PER_CYCLE) begin
+                        current_period <= current_period + MAX_CHANGE_PER_CYCLE;
+                    end else begin
+                        current_period <= period_set;  // 거의 도달했으면 목표값으로
+                    end
+                end else if (period_set < current_period) begin
+                    // 목표가 현재보다 작음 → 감소 방향
+                    if (current_period - period_set > MAX_CHANGE_PER_CYCLE) begin
+                        current_period <= current_period - MAX_CHANGE_PER_CYCLE;
+                    end else begin
+                        current_period <= period_set;  // 거의 도달했으면 목표값으로
+                    end
+                end
+                // period_set == current_period 이면 변경 없음
+            end
+        end
+    end
+
+
+
+    always_ff @(posedge clk or negedge reset_n) begin
+        if (!reset_n) begin
             pwm_servo <= 0;
         end else begin
-            pwm_servo <= (count < period_set);
+            pwm_servo <= (count < current_period);
         end
     end
 

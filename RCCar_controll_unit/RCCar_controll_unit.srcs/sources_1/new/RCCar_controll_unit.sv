@@ -1,6 +1,9 @@
 `timescale 1ns / 1ps
 
-module RCCar_controll_unit (
+module RCCar_controll_unit #(
+    parameter CLK_FREQ = 125_000_000,
+    parameter MAX_CHANGE_PER_CYCLE = CLK_FREQ * 20 / 1000 / 8 // 20ms마다 최대 변화량
+) (
     input  logic       clk,
     input  logic       reset_n,
     input  logic       bluetooth_rx,
@@ -38,7 +41,10 @@ module RCCar_controll_unit (
         .car_control(car_control)
     );
 
-    servo_motor_controller U_SERVO_MOTOR_CONTROLLER (
+    servo_motor_controller #(
+        .CLK_FREQ(CLK_FREQ),
+        .MAX_CHANGE_PER_CYCLE(MAX_CHANGE_PER_CYCLE)
+    ) U_SERVO_MOTOR_CONTROLLER (
         .clk(clk),
         .reset_n(reset_n),
         .car_control(car_control),
