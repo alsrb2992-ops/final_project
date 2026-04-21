@@ -2,16 +2,11 @@
 // collision_detector.sv
 // 각도 범위 + 거리 임계값으로 충돌 위험 판단
 //
-// 전방 각도 범위: 0° ± FRONT_ANGLE_DEG (기본 ±20°)
-//   → 0°~20° 와 340°~359° 구간
-// 거리 임계값: BRAKE_DIST_MM 이하면 제동
-// ============================================================
-// ============================================================
-// collision_detector.sv
-// 각도 범위 + 거리 임계값으로 충돌 위험 판단
-//
-// 감지 즉시 brake/warning 출력
-// 해제는 1회전 완료(round_done) 후 위험 없을 때만
+// 개선사항:
+// 1. 히스테리시스 추가 (떨림 방지)
+//    - 켜는 문턱: BRAKE_DIST_MM
+//    - 끄는 문턱: BRAKE_DIST_MM + HYSTERESIS_MM
+// 2. 기존 기능 유지 (round_done 해제 로직)
 // ============================================================
 
 `include "lidar_define.vh"
@@ -23,9 +18,10 @@ module collision_detector #(
     parameter RIGHT_END_ANGLE_DEG   = 9'd90,
     parameter LEFT_START_ANGLE_DEG  = 9'd270,
     parameter LEFT_END_ANGLE_DEG    = 9'd315,
-    parameter BRAKE_DIST_MM         = 14'd100,
-    parameter WARN_DIST_MM          = 14'd600,
-    parameter SIDE_DIST_MM          = 14'd300
+    parameter BRAKE_DIST_MM         = 14'd300,  // 브레이크 켜는 거리
+    parameter WARN_DIST_MM          = 14'd600,  // 경고 켜는 거리
+    parameter SIDE_DIST_MM          = 14'd300,
+    parameter HYSTERESIS_MM         = 14'd100   // 히스테리시스 (100mm)
 ) (
     input logic clk,
     input logic rst_n,
@@ -42,8 +38,14 @@ module collision_detector #(
     output logic [13:0] right_min_distance
 );
 
+    // ===== 히스테리시스 임계값 =====
+    localparam BRAKE_ON_THRESHOLD = BRAKE_DIST_MM;
+    localparam BRAKE_OFF_THRESHOLD = BRAKE_DIST_MM + HYSTERESIS_MM;  // 400mm
 
+    localparam WARN_ON_THRESHOLD = WARN_DIST_MM;
+    localparam WARN_OFF_THRESHOLD = WARN_DIST_MM + HYSTERESIS_MM;  // 700mm
 
+    // ===== 각도 영역 판단 =====
     wire in_front_zone = (angle <= FRONT_ANGLE_DEG) ||
                          (angle >= (9'd360 - FRONT_ANGLE_DEG));
 
@@ -56,31 +58,34 @@ module collision_detector #(
     wire left_zone = (angle <= LEFT_END_ANGLE_DEG) &&
                        (angle >=  LEFT_START_ANGLE_DEG);
 
-    // 1회전 동안 위험 누적 (해제 판단용)
-
-    // ------------------------------------------------
-    // 전방 거리 수집 및 위험 판단
-    // ------------------------------------------------
-
-
+    // ===== 전방 거리 수집 및 위험 판단 (히스테리시스 적용) =====
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             brake_signal   <= 1'b0;
             warning_signal <= 1'b0;
         end else begin
 
-            // 1. 위험 감지 즉시 출력 + 누적
-            if (data_valid && in_front_zone) begin
-                if (distance <= BRAKE_DIST_MM && distance != 14'd0) begin
-                    brake_signal   <= 1'b1;  // 즉시 출력
+            // 1. 위험 감지 - 히스테리시스 적용
+            if (data_valid && in_front_zone && distance != 14'd0) begin
+                // 브레이크 신호
+                if (distance <= BRAKE_ON_THRESHOLD) begin
+                    brake_signal   <= 1'b1;  // 켜기 (300mm 이하)
                     warning_signal <= 1'b1;
-                end else if (distance <= WARN_DIST_MM && distance != 14'd0) begin
-                    warning_signal <= 1'b1;  // 즉시 출력
+                end else if (distance >= BRAKE_OFF_THRESHOLD && brake_signal) begin
+                    brake_signal <= 1'b0;  // 끄기 (400mm 이상)
                 end
+                // brake_signal은 300~400mm 사이에서 이전 상태 유지
+
+                // 경고 신호
+                if (distance <= WARN_ON_THRESHOLD) begin
+                    warning_signal <= 1'b1;  // 켜기 (600mm 이하)
+                end else if (distance >= WARN_OFF_THRESHOLD && warning_signal) begin
+                    warning_signal <= 1'b0;  // 끄기 (700mm 이상)
+                end
+                // warning_signal은 600~700mm 사이에서 이전 상태 유지
             end
 
-
-            // 2. 1회전 완료 시 위험 없었으면 해제
+            // 2. 1회전 완료 시 강제 해제 (안전 보장)
             if (round_done) begin
                 brake_signal   <= 1'b0;
                 warning_signal <= 1'b0;
@@ -88,18 +93,12 @@ module collision_detector #(
         end
     end
 
-    //---------------------------------------------------------------
-    // 측면 거리 수집 및 위험 판단
-    //---------------------------------------------------------------
-
+    // ===== 측면 거리 수집 및 위험 판단 =====
     logic [13:0] c_left_min_distance, c_right_min_distance;
     logic [13:0] n_left_min_distance, n_right_min_distance;
 
     logic c_left_warning_signal, n_left_warning_signal;
     logic c_right_warning_signal, n_right_warning_signal;
-    logic c_left_zone_reg, n_left_zone_reg;
-    logic c_right_zone_reg, n_right_zone_reg;
-    logic c_data_valid_reg, n_data_valid_reg;
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -107,62 +106,61 @@ module collision_detector #(
             c_right_min_distance   <= 14'h3FFF;
             c_left_warning_signal  <= 0;
             c_right_warning_signal <= 0;
-            c_left_zone_reg <= 0;
-            c_right_zone_reg <= 0;
-            c_data_valid_reg <= 0;
         end else begin
             c_left_min_distance    <= n_left_min_distance;
             c_right_min_distance   <= n_right_min_distance;
             c_left_warning_signal  <= n_left_warning_signal;
             c_right_warning_signal <= n_right_warning_signal;
-            c_left_zone_reg <= n_left_zone_reg;
-            c_right_zone_reg <= n_right_zone_reg;
-            c_data_valid_reg <= n_data_valid_reg;
         end
     end
 
-    always_comb begin  // 거리 측정 및 위험 감지
+    // 측면 거리 측정 (히스테리시스 추가 버전)
+    localparam SIDE_ON_THRESHOLD = SIDE_DIST_MM;
+    localparam SIDE_OFF_THRESHOLD = SIDE_DIST_MM + HYSTERESIS_MM;
+
+    always_comb begin
         n_left_min_distance    = c_left_min_distance;
         n_right_min_distance   = c_right_min_distance;
         n_left_warning_signal  = c_left_warning_signal;
         n_right_warning_signal = c_right_warning_signal;
-        n_left_zone_reg = left_zone;
-        n_right_zone_reg = right_zone;
-        n_data_valid_reg = data_valid;
 
         if (data_valid) begin
-            if (left_zone) begin  // 왼쪽 범위
-                if (distance < c_left_min_distance && distance != 14'd0) begin // 왼쪽 최솟값 수집
+            if (left_zone && distance != 14'd0) begin
+                if (distance < c_left_min_distance) begin
                     n_left_min_distance = distance;
                 end
-
-            end else if (right_zone) begin  // 오른쪽 범위
-                if (distance < c_right_min_distance && distance != 14'd0) begin // 오른쪽 최솟값 수집
+            end else if (right_zone && distance != 14'd0) begin
+                if (distance < c_right_min_distance) begin
                     n_right_min_distance = distance;
                 end
             end
         end
 
-
-
-        if (c_left_min_distance < SIDE_DIST_MM && c_right_min_distance < c_left_min_distance ) begin // 왼쪽 위험 판단
+        // 측면 경고 - 히스테리시스 적용
+        if (c_left_min_distance < SIDE_ON_THRESHOLD && 
+            c_right_min_distance < c_left_min_distance) begin
             n_right_warning_signal = 1'b1;
-        end else if (c_right_min_distance < SIDE_DIST_MM && c_left_min_distance < c_right_min_distance) begin // 오른쪽 위험 판단
-            n_left_warning_signal = 1'b1;
+        end else if (c_left_min_distance >= SIDE_OFF_THRESHOLD && c_right_warning_signal) begin
+            n_right_warning_signal = 1'b0;
         end
 
+        if (c_right_min_distance < SIDE_ON_THRESHOLD && 
+            c_left_min_distance < c_right_min_distance) begin
+            n_left_warning_signal = 1'b1;
+        end else if (c_right_min_distance >= SIDE_OFF_THRESHOLD && c_left_warning_signal) begin
+            n_left_warning_signal = 1'b0;
+        end
+
+        // 1회전 완료 시 리셋
         if (round_done) begin
             n_left_min_distance    = 14'h3FFF;
             n_right_min_distance   = 14'h3FFF;
             n_right_warning_signal = 1'b0;
             n_left_warning_signal  = 1'b0;
         end
-
     end
 
     assign side_warning_signal = c_left_warning_signal || c_right_warning_signal;
-    assign left_warning_signal = c_left_warning_signal;
-    assign right_warning_signal = c_right_warning_signal;
     assign left_min_distance = c_left_min_distance;
     assign right_min_distance = c_right_min_distance;
 

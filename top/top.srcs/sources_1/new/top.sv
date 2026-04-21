@@ -15,7 +15,8 @@ module top #(
     parameter SIDE_HOLD_MS          = 32'd100,
     parameter TURN_THRESHOLD_MM     = 14'd800,
     parameter BIG_TURN_DIFF_MM      = 14'd100,
-    parameter MAX_CHANGE_PER_CYCLE  = CLK_FREQ * 20 / 1000 / 8
+    parameter MAX_CHANGE_PER_CYCLE  = CLK_FREQ * 20 / 1000 / 8,
+    parameter MAX_DECEL_PER_CYCLE   = 1000
 ) (
     input  logic       sysclk,
     input  logic       reset_n,
@@ -63,8 +64,8 @@ module top #(
 
     RCCar_controll_unit #(
         .CLK_FREQ(CLK_FREQ),
-        .MAX_CHANGE_PER_CYCLE(MAX_CHANGE_PER_CYCLE)
-
+        .MAX_CHANGE_PER_CYCLE(MAX_CHANGE_PER_CYCLE),
+        .MAX_DECEL_PER_CYCLE(MAX_DECEL_PER_CYCLE)       // 감속은 최대 변화량 전체
     ) u_RCCar_controll_unit (
         .clk             (clk),
         .reset_n         (rst_n),

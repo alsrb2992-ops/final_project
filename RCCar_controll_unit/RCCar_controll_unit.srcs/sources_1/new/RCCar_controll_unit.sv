@@ -2,7 +2,8 @@
 
 module RCCar_controll_unit #(
     parameter CLK_FREQ = 125_000_000,
-    parameter MAX_CHANGE_PER_CYCLE = CLK_FREQ * 20 / 1000 / 8 // 20ms마다 최대 변화량
+    parameter MAX_CHANGE_PER_CYCLE = CLK_FREQ * 20 / 1000 / 8, // 20ms마다 최대 변화량
+    parameter MAX_DECEL_PER_CYCLE = 1000
 ) (
     input  logic       clk,
     input  logic       reset_n,
@@ -51,7 +52,11 @@ module RCCar_controll_unit #(
         .pwm_servo(pwm_servo)
     );
 
-    dcmotor_controller U_DCMOTOR_CONTROLLER (
+    dcmotor_controller #(
+        .CLK_FREQ(CLK_FREQ),
+        .MAX_DECEL_PER_CYCLE(MAX_DECEL_PER_CYCLE),       // 감속은 최대 변화량 전체
+        .MAX_ACCEL_PER_CYCLE(MAX_DECEL_PER_CYCLE / 2)  // 가속은 최대 변화량의 절반
+    ) U_DCMOTOR_CONTROLLER (
         .clk(clk),
         .reset_n(reset_n),
         .car_control(car_control),

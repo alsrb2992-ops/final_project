@@ -1,6 +1,10 @@
 // ============================================================
 // lidar_top.sv
 // YDLIDAR X4PRO 충돌방지 시스템 최상위 모듈
+//
+// 개선사항:
+// 1. interference_filter - Median filter + Range validation
+// 2. collision_detector - Hysteresis 추가
 // ============================================================
 module lidar_top #(
     parameter CLK_FREQ              = 125_000_000,
@@ -13,6 +17,7 @@ module lidar_top #(
     parameter LEFT_END_ANGLE_DEG    = 9'd315,
     parameter BRAKE_DIST_MM         = 14'd300,
     parameter WARN_DIST_MM          = 14'd600,
+    parameter HYSTERESIS_MM         = 14'd100,      // 히스테리시스
     parameter HOLD_MS               = 32'd200,
     parameter SIDE_HOLD_MS          = 32'd100,
     parameter TURN_THRESHOLD_MM     = 14'd800,
@@ -51,13 +56,13 @@ module lidar_top #(
 
     logic        side_warning_signal;
     logic [13:0] left_min_distance, right_min_distance;
-    // distance_calc: si_valid +1클럭 → dist_valid
-    // angle_calc:    si_valid +3클럭 → angle_valid (stage1, stage2 파이프라인)
-    // 차이 2클럭 → dist 를 2클럭 딜레이
+
+    // Distance 2클럭 딜레이
     logic [13:0] dist_out_d1, dist_out_d2;
     logic [1:0] dist_is_d1, dist_is_d2;
     logic dist_valid_d1, dist_valid_d2;
     logic cs_ok_d1, cs_ok_d2;
+
     logic [13:0] filt_dist;
     logic [ 8:0] filt_angle;
     logic        filt_valid;
@@ -70,6 +75,7 @@ module lidar_top #(
     logic [7:0] w_rx_data, w_rx_rdata, w_tx_rdata;
     logic w_tx_full, w_rx_empty, w_tx_empty, w_tx_busy;
 
+    // ===== UART RX =====
     uart_rx_lidar #(
         .CLK_FREQ (CLK_FREQ),
         .BAUD_RATE(BAUD_RATE)
@@ -81,6 +87,7 @@ module lidar_top #(
         .valid(uart_valid)
     );
 
+    // ===== FIFO (WiFi 전송용) =====
     top_fifo U_fifo_rx (
         .clk(clk),
         .reset(rst_n),
@@ -113,10 +120,7 @@ module lidar_top #(
         .tx_done(tx_done)
     );
 
-    // ---------------------------------------------------------------------
-
-
-
+    // ===== Packet Sync & Parser =====
     packet_sync u_sync (
         .clk(clk),
         .rst_n(rst_n),
@@ -145,6 +149,7 @@ module lidar_top #(
         .cs_ok(parser_cs_ok)
     );
 
+    // ===== Distance & Angle Calculation =====
     distance_calc u_dist (
         .clk(clk),
         .rst_n(rst_n),
@@ -168,7 +173,7 @@ module lidar_top #(
         .angle_valid(angle_valid)
     );
 
-    // dist 2클럭 딜레이
+    // ===== Distance 2클럭 딜레이 (angle과 동기화) =====
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             dist_out_d1   <= '0;
@@ -192,6 +197,7 @@ module lidar_top #(
         end
     end
 
+    // ===== Interference Filter (개선: Median + Range Validation) =====
     interference_filter u_filter (
         .clk(clk),
         .rst_n(rst_n),
@@ -204,13 +210,14 @@ module lidar_top #(
         .filtered_valid(filt_valid)
     );
 
+    // ===== Round Detector =====
     round_detector u_round (
         .pkt_start(sync_pkt_start),
         .ct_start_bit(parser_ct_start),
         .round_done(round_done_sig)
     );
 
-
+    // ===== Collision Detector (개선: 히스테리시스) =====
     collision_detector #(
         .FRONT_ANGLE_DEG      (FRONT_ANGLE_DEG),
         .BEHIND_ANGLE_DEG     (BEHIND_ANGLE_DEG),
@@ -219,7 +226,8 @@ module lidar_top #(
         .LEFT_START_ANGLE_DEG (LEFT_START_ANGLE_DEG),
         .LEFT_END_ANGLE_DEG   (LEFT_END_ANGLE_DEG),
         .BRAKE_DIST_MM        (BRAKE_DIST_MM),
-        .WARN_DIST_MM         (WARN_DIST_MM)
+        .WARN_DIST_MM         (WARN_DIST_MM),
+        .HYSTERESIS_MM        (HYSTERESIS_MM)
     ) u_collision (
         .clk                (clk),
         .rst_n              (rst_n),
@@ -234,6 +242,7 @@ module lidar_top #(
         .right_min_distance (right_min_distance)
     );
 
+    // ===== Left/Right Comparator =====
     left_right_comparator #(
         .TURN_THRESHOLD_MM(TURN_THRESHOLD_MM),
         .BIG_TURN_DIFF_MM (BIG_TURN_DIFF_MM)
@@ -244,6 +253,7 @@ module lidar_top #(
         .direction_degree  (direction_degree)
     );
 
+    // ===== Brake Output =====
     brake_output #(
         .CLK_FREQ(CLK_FREQ),
         .HOLD_MS(HOLD_MS),
