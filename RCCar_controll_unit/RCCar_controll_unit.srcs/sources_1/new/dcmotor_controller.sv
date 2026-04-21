@@ -35,24 +35,24 @@ module dcmotor_controller (
     always_comb begin
         period_set = 0;
         dir_set = 2'b00;
-        case(car_control)
-            `RC_STOP : begin // 정지
+        case (car_control)
+            `RC_STOP: begin  // 정지
                 period_set = 0;
                 dir_set = 2'b00;
             end
-            `RC_FORWARD : begin // 직진
+            `RC_FORWARD: begin  // 직진
                 period_set = forward_back_cnt;
                 dir_set = 2'b01;
             end
-            `RC_BACKWARD : begin // 후진
+            `RC_BACKWARD: begin  // 후진
                 period_set = forward_back_cnt;
                 dir_set = 2'b10;
             end
-            `RC_LEFT : begin // 좌회전
+            `RC_LEFT: begin  // 좌회전
                 period_set = 0;
                 dir_set = 2'b00;
             end
-            `RC_RIGHT : begin // 우회전
+            `RC_RIGHT: begin  // 우회전
                 period_set = 0;
                 dir_set = 2'b00;
             end
@@ -64,15 +64,15 @@ module dcmotor_controller (
                 period_set = turn_cnt;
                 dir_set = 2'b01;
             end
-            `RC_BACKWARD_LEFT : begin // 후진 + 좌회전
+            `RC_BACKWARD_LEFT: begin  // 후진 + 좌회전
                 period_set = turn_cnt;
                 dir_set = 2'b10;
             end
-            `RC_BACKWARD_RIGHT : begin // 후진 + 우회전
+            `RC_BACKWARD_RIGHT: begin  // 후진 + 우회전
                 period_set = turn_cnt;
                 dir_set = 2'b10;
             end
-        endcase             
+        endcase
     end
 
     always_ff @(posedge clk or negedge reset_n) begin

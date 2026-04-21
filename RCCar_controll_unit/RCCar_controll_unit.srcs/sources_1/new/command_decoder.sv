@@ -27,8 +27,7 @@ module command_decoder (
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             car_control <= 0;
-        end
-        else begin
+        end else begin
             car_control <= car_control;
             if (auto_mode) begin
                 if (brake_signal) begin
@@ -52,42 +51,37 @@ module command_decoder (
                         end
                     endcase
                 end
-            end
-            else begin
+            end else begin
                 if (brake_siganal_edge) begin
                     car_control <= `RC_STOP;
-                end 
-                else if(rx_done) begin
-                    case(rx_data)
-                        "S" : begin // 정지
+                end else if (rx_done) begin
+                    case (rx_data)
+                        "S": begin  // 정지
                             car_control <= `RC_STOP;
                         end
-                        "F" : begin // 직진
-                            if(!brake_signal)
-                                car_control <= `RC_FORWARD; 
+                        "F": begin  // 직진
+                            if (!brake_signal) car_control <= `RC_FORWARD;
                         end
-                        "B" : begin // 후진
-                            car_control <= `RC_BACKWARD; 
+                        "B": begin  // 후진
+                            car_control <= `RC_BACKWARD;
                         end
-                        "L" : begin // 좌회전
-                            car_control <= `RC_LEFT; 
+                        "L": begin  // 좌회전
+                            car_control <= `RC_LEFT;
                         end
-                        "R" : begin // 우회전
-                            car_control <= `RC_RIGHT; 
+                        "R": begin  // 우회전
+                            car_control <= `RC_RIGHT;
                         end
-                        "G" : begin // 직진 + 좌회전
-                            if(!brake_signal)
-                                car_control <= `RC_FORWARD_LEFT; 
+                        "G": begin  // 직진 + 좌회전
+                            if (!brake_signal) car_control <= `RC_FORWARD_LEFT;
                         end
-                        "H" : begin // 직진 + 우회전
-                            if(!brake_signal)
-                                car_control <= `RC_FORWARD_RIGHT; 
+                        "H": begin  // 직진 + 우회전
+                            if (!brake_signal) car_control <= `RC_FORWARD_RIGHT;
                         end
-                        "I" : begin // 후진 + 좌회전
-                            car_control <= `RC_BACKWARD_LEFT; 
+                        "I": begin  // 후진 + 좌회전
+                            car_control <= `RC_BACKWARD_LEFT;
                         end
-                        "J" : begin // 후진 + 우회전
-                            car_control <= `RC_BACKWARD_RIGHT; 
+                        "J": begin  // 후진 + 우회전
+                            car_control <= `RC_BACKWARD_RIGHT;
                         end
                     endcase
                 end

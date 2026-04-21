@@ -3,12 +3,12 @@
 module top #(
     parameter CLK_FREQ              = 125_000_000,
     parameter BAUD_RATE             = 128_000,
-    parameter FRONT_ANGLE_DEG       = 9'd45,
+    parameter FRONT_ANGLE_DEG       = 9'd30,
     parameter BEHIND_ANGLE_DEG      = 9'd40,
-    parameter RIGHT_START_ANGLE_DEG = 9'd45,
+    parameter RIGHT_START_ANGLE_DEG = 9'd30,
     parameter RIGHT_END_ANGLE_DEG   = 9'd90,
     parameter LEFT_START_ANGLE_DEG  = 9'd270,
-    parameter LEFT_END_ANGLE_DEG    = 9'd315,
+    parameter LEFT_END_ANGLE_DEG    = 9'd330,
     parameter BRAKE_DIST_MM         = 14'd300,
     parameter WARN_DIST_MM          = 14'd600,
     parameter HOLD_MS               = 32'd200,
@@ -24,14 +24,14 @@ module top #(
     output logic       pwm_servo,
     output logic       pwm_dc,
     output logic [1:0] dir_dc,
-    output logic       brake_gpio,               //
-    output logic       warning_led,              //
-    output logic       side_warning_signal_gpio  //
+    output logic       brake_gpio,
+    output logic       warning_led,
+    output logic       side_warning_signal_gpio
 );
 
 
     logic [2:0] direction_degree_gpio;
-    wire rst_n = reset_n;
+    wire rst_n = ~reset_n; // 리셋 신호는 active low이므로 반전하여 사용
     wire clk = sysclk;
 
     lidar_top #(
