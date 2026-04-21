@@ -72,10 +72,7 @@ module brake_output #(
         end
     end
 
-
-
     logic [$clog2(SIDE_HOLD_CYCLES) -1 : 0] hold_cnt_2;
-
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -93,7 +90,6 @@ module brake_output #(
             end
         end
     end
-
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin

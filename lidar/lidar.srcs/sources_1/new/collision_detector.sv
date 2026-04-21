@@ -23,7 +23,7 @@ module collision_detector #(
     parameter RIGHT_END_ANGLE_DEG   = 9'd90,
     parameter LEFT_START_ANGLE_DEG  = 9'd270,
     parameter LEFT_END_ANGLE_DEG    = 9'd315,
-    parameter BRAKE_DIST_MM         = 14'd300,
+    parameter BRAKE_DIST_MM         = 14'd100,
     parameter WARN_DIST_MM          = 14'd600,
     parameter SIDE_DIST_MM          = 14'd300
 ) (
