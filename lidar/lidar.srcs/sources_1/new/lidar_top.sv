@@ -21,6 +21,7 @@ module lidar_top #(
     input  logic       clk,
     input  logic       rst_n,
     input  logic       lidar_rx,
+    output logic       wifi_tx,
     output logic       brake_gpio,
     output logic       warning_led,
     output logic       side_warning_signal_gpio,
@@ -66,6 +67,9 @@ module lidar_top #(
 
     logic [ 2:0] direction_degree;
 
+    logic [7:0] w_rx_data, w_rx_rdata, w_tx_rdata;
+    logic w_tx_full, w_rx_empty, w_tx_empty, w_tx_busy;
+
     uart_rx_lidar #(
         .CLK_FREQ (CLK_FREQ),
         .BAUD_RATE(BAUD_RATE)
@@ -76,6 +80,42 @@ module lidar_top #(
         .data(uart_data),
         .valid(uart_valid)
     );
+
+    top_fifo U_fifo_rx (
+        .clk(clk),
+        .reset(rst_n),
+        .wdata(uart_data),
+        .rd(~w_tx_full),
+        .wr(uart_valid),
+        .rdata(w_rx_rdata),
+        .full(),
+        .empty(w_rx_empty)
+    );
+
+    top_fifo U_fifo_tx (
+        .clk(clk),
+        .reset(rst_n),
+        .wdata(w_rx_rdata),
+        .rd(~w_tx_busy),
+        .wr(~w_rx_empty),
+        .rdata(w_tx_rdata),
+        .full(w_tx_full),
+        .empty(w_tx_empty)
+    );
+
+    uart_tx_my U_UART_TX (
+        .clk(clk),
+        .reset(rst_n),
+        .tx_data(w_tx_rdata),
+        .tx_start(~w_tx_empty),
+        .tx(wifi_tx),
+        .tx_busy(w_tx_busy),
+        .tx_done(tx_done)
+    );
+
+    // ---------------------------------------------------------------------
+
+
 
     packet_sync u_sync (
         .clk(clk),

@@ -9,7 +9,7 @@ pc_receiver_esp32.py
 Usage:
   python pc_receiver_esp32.py [PORT] [BAUD]
 
-  Windows  기본 PORT : COM3
+  Windows  기본 PORT : COM9
   Linux    기본 PORT : /dev/ttyUSB0
   기본 BAUD : 460800
 """

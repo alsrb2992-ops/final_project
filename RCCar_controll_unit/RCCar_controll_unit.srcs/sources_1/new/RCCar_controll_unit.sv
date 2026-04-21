@@ -34,7 +34,6 @@ module RCCar_controll_unit (
         .rx_done(rx_done),
         .brake_signal(brake_signal),
         .auto_mode(auto_mode),
-        .brake_signal(brake_signal),
         .direction_degree(direction_degree),
         .car_control(car_control)
     );

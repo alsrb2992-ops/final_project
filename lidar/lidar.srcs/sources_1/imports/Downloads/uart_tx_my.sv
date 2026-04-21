@@ -25,8 +25,8 @@ module uart_tx_my (
     reg [15:0] r_baud_cnt;
     reg r_baud_tick;
 
-    always @(posedge clk, posedge reset) begin
-        if (reset) begin
+    always @(posedge clk, negedge reset) begin
+        if (!reset) begin
             r_baud_cnt  <= 0;
             r_baud_tick <= 0;
         end else begin
