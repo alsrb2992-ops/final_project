@@ -1,5 +1,5 @@
 // ====================================================
-// ov7670_capture.sv: OV7670 카메라 픽셀 데이터 캡처
+// ov7670_capture.v: OV7670 카메라 픽셀 데이터 캡처
 // ----------------------------------------------------
 // 기능:
 //     - OV7670에서 RGB565 데이터 수신 (2바이트 -> 1픽셀)
@@ -23,19 +23,20 @@ module ov7670_capture(
     );
 
     // =================== 내부 신호 ===================
-    logic vsync_prev, vsync_falling;
+    reg  vsync_prev;
+    wire vsync_falling;
 
-    logic byte_toggle;    // 0: 상위 바이트, 1: 하위 바이트
+    reg byte_toggle;    // 0: 상위 바이트, 1: 하위 바이트
 
     // ============= VSYNC 하강 엣지 검출 ==============
-    always_ff @(posedge pclk) begin
+    always @(posedge pclk) begin
         vsync_prev <= vsync;
     end
 
     assign vsync_falling = ~vsync & vsync_prev;
 
     // ======= RGB565 데이터 수신 (2바이트 조합) ========
-    always_ff @(posedge pclk) begin
+    always @(posedge pclk) begin
         if (vsync_falling) begin
             byte_toggle <= 1'b0;
             wEn <= 1'b0;
@@ -60,7 +61,7 @@ module ov7670_capture(
     end
 
     // =========== BRAM Write Address 생성 ============
-    always_ff @(posedge pclk) begin
+    always @(posedge pclk) begin
         if (vsync_falling) begin
             wAddr <= 0;
         end

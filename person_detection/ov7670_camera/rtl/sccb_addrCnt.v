@@ -1,5 +1,5 @@
 // ==========================================
-// sccb_addrCnt.sv: SCCB ROM 주소 관리
+// sccb_addrCnt.v: SCCB ROM 주소 관리
 // ------------------------------------------
 // 기능:
 //     - SCCB 전송 완료 시 다음 레지스터로 이동
@@ -17,7 +17,7 @@ module sccb_addrCnt #(
     output reg cfgDone
     );
 
-    always_ff @(posedge clk or negedge rstn) begin
+    always @(posedge clk or negedge rstn) begin
         if (!rstn) begin
             regAddr <= 0;
             cfgDone <= 0;

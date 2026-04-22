@@ -1,5 +1,5 @@
 // ============================================
-// sccb_initTiming.sv: SCCB 초기화 타이밍 생성기
+// sccb_initTiming.v: SCCB 초기화 타이밍 생성기
 // --------------------------------------------
 // 기능:
 //     - 전원 인가 후 100ms 대기
@@ -14,9 +14,9 @@ module sccb_initTiming(
 
     localparam WAIT = 12_500_000;    // 125MHz x 100ms
 
-    logic [$clog2(WAIT)-1:0] cnt;
+    reg [$clog2(WAIT)-1:0] cnt;
 
-    always_ff @(posedge clk or negedge rstn) begin
+    always @(posedge clk or negedge rstn) begin
         if (!rstn) begin
             cnt <= 0;
             ready <= 0;

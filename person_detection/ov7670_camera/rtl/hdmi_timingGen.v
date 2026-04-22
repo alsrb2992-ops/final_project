@@ -1,5 +1,5 @@
 // ===============================================================
-// hdmi_timingGen.sv: HDMI 640x480 @ 60Hz 타이밍 생성기
+// hdmi_timingGen.v: HDMI 640x480 @ 60Hz 타이밍 생성기
 // ---------------------------------------------------------------
 // 기능:
 //     - HSYNC, VSYNC, DE(Data Enable) 생성
@@ -38,9 +38,9 @@ module hdmi_timingGen(
     localparam V_TOTAL   = V_VISIBLE + V_FRONT + V_SYNC + V_BACK;    // 525
 
     // ==================== 수평/수직 카운터 ======================
-    logic [9:0] h_cnt, v_cnt;    // 0-799 / 0-524
+    reg [9:0] h_cnt, v_cnt;    // 0-799 / 0-524
 
-    always_ff @(posedge clk or negedge rstn) begin
+    always @(posedge clk or negedge rstn) begin
         if (!rstn) begin
             h_cnt <= 0; v_cnt <= 0;
         end

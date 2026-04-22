@@ -1,5 +1,5 @@
 // ===================================================
-// ov7670_top.sv: OV7670 to HDMI 최상위 모듈
+// ov7670_top.v: OV7670 to HDMI 최상위 모듈
 // ---------------------------------------------------
 // 데이터 흐름:
 //     OV7670 카메라 -> ov7670_capture -> BRAM -> HDMI
@@ -97,11 +97,11 @@ module ov7670_top(
 
     // ================== 디버그 LED ==================
     localparam STRETCH = 12_500_000;
-    logic [$clog2(STRETCH)-1:0] cnt;
+    reg [$clog2(STRETCH)-1:0] cnt;
 
-    logic sccb_cfgDone_stretch;
+    reg sccb_cfgDone_stretch;
 
-    always_ff @(posedge clk or negedge rstn) begin
+    always @(posedge clk or negedge rstn) begin
         if (!rstn) begin
             cnt <= 0;
             sccb_cfgDone_stretch <= 0;

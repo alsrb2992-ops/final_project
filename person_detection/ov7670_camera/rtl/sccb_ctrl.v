@@ -1,5 +1,5 @@
 // ===========================================================
-// sccb_ctrl.sv: SCCB 프로토콜 컨트롤러
+// sccb_ctrl.v: SCCB 프로토콜 컨트롤러
 // -----------------------------------------------------------
 // 기능:
 //     - I2C 호환 2-wire 통신 (SCCB)
@@ -33,35 +33,35 @@ module sccb_ctrl(
     localparam SLV_ADDR = 8'h42;    // Write 주소 (0x21 << 1)
 
     // ==================== FSM 상태 정의 =====================
-    typedef enum logic [4:0] {IDLE, START_1, START_2,
-                              SLV_ADDR_1, SLV_ADDR_2, SLV_ADDR_3, SLV_ADDR_4,
-                              SLV_ACK_1, SLV_ACK_2, SLV_ACK_3, SLV_ACK_4,
-                              REG_ADDR_1, REG_ADDR_2, REG_ADDR_3, REG_ADDR_4,
-                              REG_ACK_1, REG_ACK_2, REG_ACK_3, REG_ACK_4,
-                              REG_DATA_1, REG_DATA_2, REG_DATA_3, REG_DATA_4,
-                              DATA_ACK_1, DATA_ACK_2, DATA_ACK_3, DATA_ACK_4,
-                              STOP_PREP, STOP_1, STOP_2, WAIT_RESET} state_t;
-    state_t cState, nState;
+    localparam IDLE=0, START_1=1, START_2=2,
+               SLV_ADDR_1=3, SLV_ADDR_2=4, SLV_ADDR_3=5, SLV_ADDR_4=6,
+               SLV_ACK_1=7, SLV_ACK_2=8, SLV_ACK_3=9, SLV_ACK_4=10,
+               REG_ADDR_1=11, REG_ADDR_2=12, REG_ADDR_3=13, REG_ADDR_4=14,
+               REG_ACK_1=15, REG_ACK_2=16, REG_ACK_3=17, REG_ACK_4=18,
+               REG_DATA_1=19, REG_DATA_2=20, REG_DATA_3=21, REG_DATA_4=22,
+               DATA_ACK_1=23, DATA_ACK_2=24, DATA_ACK_3=25, DATA_ACK_4=26,
+               STOP_PREP=27, STOP_1=28, STOP_2=29, WAIT_RESET=30;
+    reg [4:0] cState, nState;
 
     // =================== 데이터 레지스터 ====================
-    logic       scl_reg, sda_reg;
-    logic [7:0] txData;
+    reg       scl_reg, sda_reg;
+    reg [7:0] txData;
 
-    logic [19:0] clk_cnt;
-    logic  [2:0] bit_cnt;
+    reg [19:0] clk_cnt;
+    reg  [2:0] bit_cnt;
 
     // ========= SCL/SDA 출력 (Open-drain 에뮬레이션) =========
     assign scl = (scl_reg == 0) ? 1'b0 : 1'bz;
     assign sda = (sda_reg == 0) ? 1'b0 : 1'bz;
 
     // ================ 상태 레지스터 업데이트 =================
-    always_ff @(posedge clk or negedge rstn) begin
+    always @(posedge clk or negedge rstn) begin
         if (!rstn) cState <= IDLE;
         else cState <= nState;
     end
 
     // ====================== 상태 전이 =======================
-    always_comb begin
+    always @(*) begin
         nState = cState;
 
         case (cState)
@@ -141,7 +141,7 @@ module sccb_ctrl(
     end
 
     // ============ 출력 + 데이터 레지스터 업데이트 ============
-    always_ff @(posedge clk or negedge rstn) begin
+    always @(posedge clk or negedge rstn) begin
         if (!rstn) begin
             scl_reg <= 1; sda_reg <= 1;
             txData <= SLV_ADDR;

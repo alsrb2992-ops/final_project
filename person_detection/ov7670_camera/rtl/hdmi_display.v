@@ -1,5 +1,5 @@
 // ========================================================
-// hdmi_display.sv: HDMI 디스플레이 제어 모듈
+// hdmi_display.v: HDMI 디스플레이 제어 모듈
 // --------------------------------------------------------
 // 기능:
 //     - BRAM에서 카메라 프레임 데이터 읽기
@@ -32,18 +32,18 @@ module hdmi_display(
 
     // ====================== 내부 신호 ====================
     // 2배 축소 좌표
-    logic [8:0] cam_x;    // 0-319 (640/2)
-    logic [7:0] cam_y;    // 0-239 (480/2)
+    wire [8:0] cam_x;    // 0-319 (640/2)
+    wire [7:0] cam_y;    // 0-239 (480/2)
 
     // RGB565 -> RGB888 변환
-    logic [23:0] rgb888;
+    wire [23:0] rgb888;
 
     // 1 클럭 앞선 좌표 (다음 픽셀)
-    logic [9:0] pxl_x_next, pxl_y_next;
-    logic       de_delayed;
+    reg [9:0] pxl_x_next, pxl_y_next;
+    reg       de_delayed;
 
     // =================== 좌표 파이프라인 =================
-    always_ff @(posedge clk) begin
+    always @(posedge clk) begin
         pxl_x_next <= pxl_x + 1;
         pxl_y_next <= pxl_y;
         de_delayed <= de;
@@ -53,7 +53,7 @@ module hdmi_display(
     assign cam_y = pxl_y_next[8:1];    // pxl_y_next / 2
 
     // =============== BRAM Read Address 생성 =============
-    always_ff @(posedge clk or negedge rstn) begin
+    always @(posedge clk or negedge rstn) begin
         if (!rstn) rAddr <= 0;
         else if (de) rAddr <= (cam_y * CAM_WIDTH) + cam_x;
         else rAddr <= 0;
@@ -63,7 +63,7 @@ module hdmi_display(
     rgb565_to_rgb888 u_rgbConv (.rgb565(rData), .rgb888(rgb888));
 
     // ====================== RGB 출력 ====================
-    always_ff @(posedge clk or negedge rstn) begin
+    always @(posedge clk or negedge rstn) begin
         if (!rstn) begin
             red <= 0; grn <= 0; blue <= 0;
         end

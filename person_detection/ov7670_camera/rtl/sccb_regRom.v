@@ -1,5 +1,5 @@
 // ===========================================================
-// sccb_regRom.sv: OV7670 레지스터 설정 ROM
+// sccb_regRom.v: OV7670 레지스터 설정 ROM
 // -----------------------------------------------------------
 // 기능:
 //     - OV7670 초기화 레지스터 값 저장
@@ -16,7 +16,7 @@ module sccb_regRom #(
     output [7:0] regAddr, regData
     );
 
-    logic [15:0] rom [0:NUM_REGS-1];
+    reg [15:0] rom [0:NUM_REGS-1];
 
     assign regAddr = rom[romAddr][15:8];
     assign regData = rom[romAddr][7:0];
