@@ -23,19 +23,19 @@ module collision_detector #(
     parameter SIDE_DIST_MM          = 14'd300,
     parameter HYSTERESIS_MM         = 14'd100   // 히스테리시스 (100mm)
 ) (
-    input logic clk,
-    input logic rst_n,
+    input wire clk,
+    input wire rst_n,
 
-    input logic [13:0] distance,
-    input logic [ 8:0] angle,
-    input logic        data_valid,
-    input logic        round_done,
+    input wire [13:0] distance,
+    input wire [ 8:0] angle,
+    input wire        data_valid,
+    input wire        round_done,
 
-    output logic brake_signal,
-    output logic warning_signal,
-    output logic side_warning_signal,
-    output logic [13:0] left_min_distance,
-    output logic [13:0] right_min_distance
+    output reg brake_signal,
+    output reg warning_signal,
+    output wire side_warning_signal,
+    output wire [13:0] left_min_distance,
+    output wire [13:0] right_min_distance
 );
 
     // ===== 히스테리시스 임계값 =====
@@ -59,7 +59,7 @@ module collision_detector #(
                        (angle >=  LEFT_START_ANGLE_DEG);
 
     // ===== 전방 거리 수집 및 위험 판단 (히스테리시스 적용) =====
-    always_ff @(posedge clk or negedge rst_n) begin
+    always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             brake_signal   <= 1'b0;
             warning_signal <= 1'b0;
@@ -94,13 +94,13 @@ module collision_detector #(
     end
 
     // ===== 측면 거리 수집 및 위험 판단 =====
-    logic [13:0] c_left_min_distance, c_right_min_distance;
-    logic [13:0] n_left_min_distance, n_right_min_distance;
+    reg [13:0] c_left_min_distance, c_right_min_distance;
+    reg [13:0] n_left_min_distance, n_right_min_distance;
 
-    logic c_left_warning_signal, n_left_warning_signal;
-    logic c_right_warning_signal, n_right_warning_signal;
+    reg c_left_warning_signal, n_left_warning_signal;
+    reg c_right_warning_signal, n_right_warning_signal;
 
-    always_ff @(posedge clk or negedge rst_n) begin
+    always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             c_left_min_distance    <= 14'h3FFF;
             c_right_min_distance   <= 14'h3FFF;
@@ -118,7 +118,7 @@ module collision_detector #(
     localparam SIDE_ON_THRESHOLD = SIDE_DIST_MM;
     localparam SIDE_OFF_THRESHOLD = SIDE_DIST_MM + HYSTERESIS_MM;
 
-    always_comb begin
+    always @(*) begin
         n_left_min_distance    = c_left_min_distance;
         n_right_min_distance   = c_right_min_distance;
         n_left_warning_signal  = c_left_warning_signal;

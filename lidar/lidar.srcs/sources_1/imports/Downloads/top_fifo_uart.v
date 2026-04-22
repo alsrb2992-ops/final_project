@@ -8,8 +8,8 @@ module top_fifo_uart (
 
 );
 
-    logic [7:0] w_rx_data, w_rx_rdata, w_tx_rdata;
-    logic w_rx_done, w_tx_full, w_rx_empty, w_tx_empty, w_tx_busy;
+    wire [7:0] w_rx_data, w_rx_rdata, w_tx_rdata;
+    wire w_rx_done, w_tx_full, w_rx_empty, w_tx_empty, w_tx_busy;
 
     assign rx_data = w_rx_rdata;
     assign empty   = w_rx_empty;

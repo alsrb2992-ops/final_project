@@ -12,31 +12,31 @@ module brake_output #(
     parameter HOLD_MS      = 32'd200,      // 제동 유지 시간 (ms)
     parameter SIDE_HOLD_MS = 32'd100       // 측면 경고 유지 시간 (ms)
 ) (
-    input logic clk,
-    input logic rst_n,
+    input wire clk,
+    input wire rst_n,
 
-    input logic       round_done,
-    input logic       brake_signal,
-    input logic       warning_signal,
-    input logic       side_warning_signal,
-    input logic [2:0] direction_degree,
+    input wire       round_done,
+    input wire       brake_signal,
+    input wire       warning_signal,
+    input wire       side_warning_signal,
+    input wire [3:0] direction_degree,
 
-    output logic       brake_gpio,                // 모터 드라이버로
-    output logic       warning_led,               // 경고 LED
-    output logic       side_warning_signal_gpio,  // 측면 경고 GPIO
-    output logic [2:0] direction_degree_gpio      // 방향 정보 GPIO
+    output reg       brake_gpio,                // 모터 드라이버로
+    output reg       warning_led,               // 경고 LED
+    output reg       side_warning_signal_gpio,  // 측면 경고 GPIO
+    output reg [2:0] direction_degree_gpio      // 방향 정보 GPIO
 );
 
     localparam HOLD_CYCLES = CLK_FREQ / 1000 * HOLD_MS;  // 10,000,000
     localparam SIDE_HOLD_CYCLES = CLK_FREQ / 1000 * SIDE_HOLD_MS;  // 5,000,000
 
 
-    logic [$clog2(HOLD_CYCLES) -1:0] hold_cnt;
+    reg [$clog2(HOLD_CYCLES) -1:0] hold_cnt;
 
-    always_ff @(posedge clk or negedge rst_n) begin
+    always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            brake_gpio <= '0;
-            hold_cnt   <= '0;
+            brake_gpio <= 0;
+            hold_cnt   <= 0;
         end else begin
 
             if (brake_signal) begin
@@ -53,11 +53,11 @@ module brake_output #(
         end
     end
 
-    logic [$clog2(HOLD_CYCLES) -1 : 0] hold_cnt_1;
-    always_ff @(posedge clk or negedge rst_n) begin
+    reg [$clog2(HOLD_CYCLES) -1 : 0] hold_cnt_1;
+    always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            warning_led <= '0;
-            hold_cnt_1  <= '0;
+            warning_led <= 0;
+            hold_cnt_1  <= 0;
         end else begin
 
             if (warning_signal) begin
@@ -72,11 +72,11 @@ module brake_output #(
         end
     end
 
-    logic [$clog2(SIDE_HOLD_CYCLES) -1 : 0] hold_cnt_2;
+    reg [$clog2(SIDE_HOLD_CYCLES) -1 : 0] hold_cnt_2;
 
-    always_ff @(posedge clk or negedge rst_n) begin
+    always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            hold_cnt_2 <= '0;
+            hold_cnt_2 <= 0;
         end else begin
 
             if (side_warning_signal || warning_signal) begin
@@ -91,7 +91,7 @@ module brake_output #(
         end
     end
 
-    always_ff @(posedge clk or negedge rst_n) begin
+    always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             direction_degree_gpio <= `CENTER;
         end else begin

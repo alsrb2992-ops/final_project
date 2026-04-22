@@ -1,25 +1,25 @@
 `timescale 1ns / 1ps
 
 module control_unit (
-    input clk,
-    input reset,
-    input wr,
-    input rd,
-    output full,
-    output empty,
+    input        clk,
+    input        reset,
+    input        wr,
+    input        rd,
+    output       full,
+    output       empty,
     output [3:0] wptr,
     output [3:0] rptr
 );
 
-    logic c_full, n_full, c_empty, n_empty;
-    logic [3:0] c_wptr, n_wptr, c_rptr, n_rptr;
+    reg c_full, n_full, c_empty, n_empty;
+    reg [3:0] c_wptr, n_wptr, c_rptr, n_rptr;
 
     assign full  = c_full;
     assign empty = c_empty;
     assign wptr  = c_wptr;
     assign rptr  = c_rptr;
 
-    always_ff @(posedge clk, negedge reset) begin
+    always @(posedge clk, negedge reset) begin
         if (!reset) begin
             c_full  <= 0;
             c_empty <= 1;
@@ -33,7 +33,7 @@ module control_unit (
         end
     end
 
-    always_comb begin
+    always @(*) begin
         n_empty = c_empty;
         n_full  = c_full;
         n_rptr  = c_rptr;

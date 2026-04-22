@@ -23,57 +23,57 @@ module lidar_top #(
     parameter TURN_THRESHOLD_MM     = 14'd800,
     parameter BIG_TURN_DIFF_MM      = 14'd100
 ) (
-    input  logic       clk,
-    input  logic       rst_n,
-    input  logic       lidar_rx,
-    output logic       wifi_tx,
-    output logic       brake_gpio,
-    output logic       warning_led,
-    output logic       side_warning_signal_gpio,
-    output logic [2:0] direction_degree_gpio
+    input  wire       clk,
+    input  wire       rst_n,
+    input  wire       lidar_rx,
+    output wire       wifi_tx,
+    output wire       brake_gpio,
+    output wire       warning_led,
+    output wire       side_warning_signal_gpio,
+    output wire [2:0] direction_degree_gpio
 );
 
-    logic [ 7:0] uart_data;
-    logic        uart_valid;
-    logic [ 7:0] sync_byte;
-    logic        sync_byte_valid;
-    logic        sync_pkt_start;
-    logic        parser_ct_start;
-    logic [ 7:0] parser_lsn;
-    logic [15:0] parser_fsa;
-    logic [15:0] parser_lsa;
-    logic [15:0] parser_cs;
-    logic [15:0] parser_si_raw;
-    logic        parser_si_valid;
-    logic        parser_pkt_done;
-    logic        parser_cs_ok;
-    logic        parser_fsa_lsa_valid;
-    logic [13:0] dist_out;
-    logic [ 1:0] dist_is;
-    logic        dist_valid;
-    logic [ 8:0] angle_out;
-    logic        angle_valid;
+    wire [ 7:0] uart_data;
+    wire        uart_valid;
+    wire [ 7:0] sync_byte;
+    wire        sync_byte_valid;
+    wire        sync_pkt_start;
+    wire        parser_ct_start;
+    wire [ 7:0] parser_lsn;
+    wire [15:0] parser_fsa;
+    wire [15:0] parser_lsa;
+    wire [15:0] parser_cs;
+    wire [15:0] parser_si_raw;
+    wire        parser_si_valid;
+    wire        parser_pkt_done;
+    wire        parser_cs_ok;
+    wire        parser_fsa_lsa_valid;
+    wire [13:0] dist_out;
+    wire [ 1:0] dist_is;
+    wire        dist_valid;
+    wire [ 8:0] angle_out;
+    wire        angle_valid;
 
-    logic        side_warning_signal;
-    logic [13:0] left_min_distance, right_min_distance;
+    wire        side_warning_signal;
+    wire [13:0] left_min_distance, right_min_distance;
 
     // Distance 2클럭 딜레이
-    logic [13:0] dist_out_d1, dist_out_d2;
-    logic [1:0] dist_is_d1, dist_is_d2;
-    logic dist_valid_d1, dist_valid_d2;
-    logic cs_ok_d1, cs_ok_d2;
+    reg [13:0] dist_out_d1, dist_out_d2;
+    reg [1:0] dist_is_d1, dist_is_d2;
+    reg dist_valid_d1, dist_valid_d2;
+    reg cs_ok_d1, cs_ok_d2;
 
-    logic [13:0] filt_dist;
-    logic [ 8:0] filt_angle;
-    logic        filt_valid;
-    logic        brake_signal;
-    logic        warning_signal;
-    logic        round_done_sig;
+    wire [13:0] filt_dist;
+    wire [ 8:0] filt_angle;
+    wire        filt_valid;
+    wire        brake_signal;
+    wire        warning_signal;
+    wire        round_done_sig;
 
-    logic [ 2:0] direction_degree;
+    wire [ 2:0] direction_degree;
 
-    logic [7:0] w_rx_data, w_rx_rdata, w_tx_rdata;
-    logic w_tx_full, w_rx_empty, w_tx_empty, w_tx_busy;
+    wire [7:0] w_rx_data, w_rx_rdata, w_tx_rdata;
+    wire w_tx_full, w_rx_empty, w_tx_empty, w_tx_busy;
 
     // ===== UART RX =====
     uart_rx_lidar #(
@@ -174,16 +174,16 @@ module lidar_top #(
     );
 
     // ===== Distance 2클럭 딜레이 (angle과 동기화) =====
-    always_ff @(posedge clk or negedge rst_n) begin
+    always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            dist_out_d1   <= '0;
-            dist_out_d2   <= '0;
-            dist_is_d1    <= '0;
-            dist_is_d2    <= '0;
-            dist_valid_d1 <= '0;
-            dist_valid_d2 <= '0;
-            cs_ok_d1      <= '0;
-            cs_ok_d2      <= '0;
+            dist_out_d1   <= 0;
+            dist_out_d2   <= 0;
+            dist_is_d1    <= 0;
+            dist_is_d2    <= 0;
+            dist_valid_d1 <= 0;
+            dist_valid_d2 <= 0;
+            cs_ok_d1      <= 0;
+            cs_ok_d2      <= 0;
         end else begin
             dist_out_d1   <= dist_out;
             dist_is_d1    <= dist_is;

@@ -8,7 +8,7 @@
 //                                          └──→ pc_tx (1초마다 ASCII)
 // ============================================================
 module lidar_passthrough_top #(
-    parameter CLK_FREQ        = 100_000_000,
+    parameter CLK_FREQ        = 125_000_000,
     parameter BAUD_RATE       = 128_000,
     parameter PC_BAUD_RATE    = 128_000,
     parameter FRONT_ANGLE_DEG = 9'd80,
@@ -16,22 +16,22 @@ module lidar_passthrough_top #(
     parameter WARN_DIST_MM    = 14'd400,
     parameter HOLD_MS         = 32'd200
 ) (
-    input logic clk,
-    input logic rst,
+    input wire clk,
+    input wire rst,
 
-    input logic lidar_rx,
+    input wire lidar_rx,
 
-    output logic pc_tx,  // 1초마다 ASCII 거리 리포트
+    output reg pc_tx,  // 1초마다 ASCII 거리 리포트
 
-    output logic brake_gpio,
-    output logic warning_led
+    output reg brake_gpio,
+    output reg warning_led
 );
 
-    wire         rst_n = ~rst;
+    wire        rst_n = ~rst;
 
-    logic [ 8:0] report_angle;
-    logic [13:0] report_dist;
-    logic        report_valid;
+    reg  [ 8:0] report_angle;
+    reg  [13:0] report_dist;
+    reg         report_valid;
 
     // 1. lidar_top_debug (충돌방지 + report 포트)
     lidar_top_debug #(
