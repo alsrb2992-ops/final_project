@@ -9,33 +9,31 @@
 //  cmd_valid pulses for 1 cycle when a valid, checksum-correct command arrives.
 //=============================================================================
 module cmd_decoder (
-    input  logic        clk,
-    input  logic        rst,
+    input  wire        clk,
+    input  wire        rst,
     // uart_rx interface
-    input  logic [7:0]  rx_data,
-    input  logic        rx_done,
+    input  wire [7:0]  rx_data,
+    input  wire        rx_done,
     // decoded command output
-    output logic [7:0]  cmd_out,
-    output logic [7:0]  cmd_payload,
-    output logic        cmd_valid
+    output reg  [7:0]  cmd_out,
+    output reg  [7:0]  cmd_payload,
+    output reg         cmd_valid
 );
 
-    typedef enum logic [2:0] {
-        CD_IDLE = 3'd0,
-        CD_HDR2 = 3'd1,
-        CD_CMD  = 3'd2,
-        CD_LEN  = 3'd3,
-        CD_DATA = 3'd4,
-        CD_CS   = 3'd5
-    } cd_state_t;
+    localparam [2:0] CD_IDLE = 3'd0;
+    localparam [2:0] CD_HDR2 = 3'd1;
+    localparam [2:0] CD_CMD  = 3'd2;
+    localparam [2:0] CD_LEN  = 3'd3;
+    localparam [2:0] CD_DATA = 3'd4;
+    localparam [2:0] CD_CS   = 3'd5;
 
-    cd_state_t  state;
-    logic [7:0] cmd_reg;
-    logic [7:0] len_reg;
-    logic [7:0] data_reg;
-    logic [7:0] cs_calc;
+    reg [2:0] state;
+    reg [7:0] cmd_reg;
+    reg [7:0] len_reg;
+    reg [7:0] data_reg;
+    reg [7:0] cs_calc;
 
-    always_ff @(posedge clk or posedge rst) begin
+    always @(posedge clk or posedge rst) begin
         if (rst) begin
             state       <= CD_IDLE;
             cmd_out     <= 8'h00;

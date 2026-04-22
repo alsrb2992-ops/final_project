@@ -6,24 +6,24 @@
 //           BAUD_RATE - desired baud rate in bps       (default 115200)
 //=============================================================================
 module baud_gen #(
-    parameter int CLK_FREQ  = 100_000_000,
-    parameter int BAUD_RATE = 115_200
+    parameter integer CLK_FREQ  = 100_000_000,
+    parameter integer BAUD_RATE = 115_200
 )(
-    input  logic clk,
-    input  logic rst,
-    output logic tick        // 1-cycle pulse every bit period
+    input  wire clk,
+    input  wire rst,
+    output reg  tick        // 1-cycle pulse every bit period
 );
 
-    localparam int DIVISOR = CLK_FREQ / BAUD_RATE;  // 868 @ 100MHz/115200
+    localparam integer DIVISOR = CLK_FREQ / BAUD_RATE;  // 868 @ 100MHz/115200
 
-    logic [$clog2(DIVISOR)-1:0] cnt;
+    reg [$clog2(DIVISOR)-1:0] cnt;
 
-    always_ff @(posedge clk or posedge rst) begin
+    always @(posedge clk or posedge rst) begin
         if (rst) begin
-            cnt  <= '0;
+            cnt  <= 0;
             tick <= 1'b0;
         end else if (cnt == DIVISOR - 1) begin
-            cnt  <= '0;
+            cnt  <= 0;
             tick <= 1'b1;
         end else begin
             cnt  <= cnt + 1'b1;

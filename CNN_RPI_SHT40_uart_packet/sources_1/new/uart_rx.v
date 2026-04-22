@@ -8,28 +8,28 @@
 //           rx_error - framing error (stop bit not '1')
 //=============================================================================
 module uart_rx #(
-    parameter int CLK_FREQ  = 100_000_000,
-    parameter int BAUD_RATE = 115_200
+    parameter integer CLK_FREQ  = 100_000_000,
+    parameter integer BAUD_RATE = 115_200
 )(
-    input  logic       clk,
-    input  logic       rst,
-    input  logic       rx,
-    output logic [7:0] rx_data,
-    output logic       rx_done,
-    output logic       rx_error
+    input  wire       clk,
+    input  wire       rst,
+    input  wire       rx,
+    output reg  [7:0] rx_data,
+    output reg        rx_done,
+    output reg        rx_error
 );
 
-    localparam int OVS_DIV = CLK_FREQ / (BAUD_RATE * 16);
+    localparam integer OVS_DIV = CLK_FREQ / (BAUD_RATE * 16);
 
-    logic [$clog2(OVS_DIV)-1:0] ovs_cnt;
-    logic                        ovs_tick;
+    reg [$clog2(OVS_DIV)-1:0] ovs_cnt;
+    reg                        ovs_tick;
 
-    always_ff @(posedge clk or posedge rst) begin
+    always @(posedge clk or posedge rst) begin
         if (rst) begin
-            ovs_cnt  <= '0;
+            ovs_cnt  <= 0;
             ovs_tick <= 1'b0;
         end else if (ovs_cnt == OVS_DIV - 1) begin
-            ovs_cnt  <= '0;
+            ovs_cnt  <= 0;
             ovs_tick <= 1'b1;
         end else begin
             ovs_cnt  <= ovs_cnt + 1'b1;
@@ -37,25 +37,23 @@ module uart_rx #(
         end
     end
 
-    typedef enum logic [1:0] {
-        ST_IDLE  = 2'd0,
-        ST_START = 2'd1,
-        ST_DATA  = 2'd2,
-        ST_STOP  = 2'd3
-    } state_t;
+    localparam [1:0] ST_IDLE  = 2'd0;
+    localparam [1:0] ST_START = 2'd1;
+    localparam [1:0] ST_DATA  = 2'd2;
+    localparam [1:0] ST_STOP  = 2'd3;
 
-    state_t     state;
-    logic [3:0] sample_cnt;
-    logic [2:0] bit_idx;
-    logic [7:0] shift_reg;
+    reg [1:0] state;
+    reg [3:0] sample_cnt;
+    reg [2:0] bit_idx;
+    reg [7:0] shift_reg;
 
-    always_ff @(posedge clk or posedge rst) begin
+    always @(posedge clk or posedge rst) begin
         if (rst) begin
             state      <= ST_IDLE;
-            sample_cnt <= '0;
-            bit_idx    <= '0;
-            shift_reg  <= '0;
-            rx_data    <= '0;
+            sample_cnt <= 4'd0;
+            bit_idx    <= 3'd0;
+            shift_reg  <= 8'd0;
+            rx_data    <= 8'd0;
             rx_done    <= 1'b0;
             rx_error   <= 1'b0;
         end else begin
@@ -65,7 +63,7 @@ module uart_rx #(
             case (state)
                 ST_IDLE: begin
                     if (rx == 1'b0) begin
-                        sample_cnt <= '0;
+                        sample_cnt <= 4'd0;
                         state      <= ST_START;
                     end
                 end
@@ -74,8 +72,8 @@ module uart_rx #(
                     if (ovs_tick) begin
                         if (sample_cnt == 4'd7) begin
                             if (rx == 1'b0) begin
-                                sample_cnt <= '0;
-                                bit_idx    <= '0;
+                                sample_cnt <= 4'd0;
+                                bit_idx    <= 3'd0;
                                 state      <= ST_DATA;
                             end else begin
                                 state <= ST_IDLE;
@@ -89,7 +87,7 @@ module uart_rx #(
                 ST_DATA: begin
                     if (ovs_tick) begin
                         if (sample_cnt == 4'd15) begin
-                            sample_cnt <= '0;
+                            sample_cnt <= 4'd0;
                             shift_reg  <= {rx, shift_reg[7:1]};
                             if (bit_idx == 3'd7)
                                 state <= ST_STOP;
