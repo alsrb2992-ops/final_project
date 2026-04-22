@@ -38,8 +38,8 @@ module ov7670_top(
     wire sccb_cfgDone;
 
     wire        bram_wEn;
-    wire [16:0] bram_wAddr;
-    wire [15:0] bram_wData;
+    wire [16:0] bram_wAddr, bram_rAddr;
+    wire [15:0] bram_wData, bram_rData;
 
     wire       hdmi_hsync, hdmi_vsync;
     wire       de;
@@ -69,23 +69,24 @@ module ov7670_top(
 
     // ============== BRAM Frame Buffer ==============
     frameBuff_bram u_fb (
-        .clka(pclk), .wea(bram_wEn), .addra(bram_wAddr), .dina(bram_wData), .douta(),    // Port A (Write) - OV7670
-        .clkb(clk_pxl_25m), .web(1'b0), .addrb(), .dinb(), .doutb());                    // Port B (Read) - HDMI
+        .clka(pclk), .wea(bram_wEn), .addra(bram_wAddr), .dina(bram_wData), .douta(),                // Port A (Write) - OV7670
+        .clkb(clk_pxl_25m), .web(1'b0), .addrb(bram_rAddr), .dinb(16'h0000), .doutb(bram_rData));    // Port B (Read) - HDMI
 
     // ================== 디버그 ILA ==================
-    ila_capture u_ila (
-        .clk(clk),
-        .probe0(pclk), .probe1(vsync), .probe2(href), .probe3(bram_wEn), .probe4(bram_wAddr), .probe5(bram_wData), .probe6(data));
+//    ila_capture u_ila (
+//        .clk(clk),
+//        .probe0(pclk), .probe1(vsync), .probe2(href), .probe3(bram_wEn), .probe4(bram_wAddr), .probe5(bram_wData), .probe6(data));
 
     // ================= 타이밍 생성 ==================
     hdmi_timingGen u_timingGen (
         .clk(clk_pxl_25m), .rstn(rstn & locked_pxl),
         .hsync(hdmi_hsync), .vsync(hdmi_vsync), .de(de), .pxl_x(pxl_x), .pxl_y(pxl_y));
 
-    // ================ RGB 패턴 생성 =================
-    test_rgbPatGen u_rgbPatGen (
+    // =============== HDMI 디스플레이 ================
+    hdmi_display u_disp (
         .clk(clk_pxl_25m), .rstn(rstn & locked_pxl),
-        .de(de),
+        .de(de), .pxl_x(pxl_x), .pxl_y(pxl_y),
+        .rAddr(bram_rAddr), .rData(bram_rData),
         .red(red), .grn(grn), .blue(blue));
 
     // ================= HDMI 출력 ===================

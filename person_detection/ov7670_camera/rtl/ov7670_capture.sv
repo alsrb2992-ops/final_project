@@ -25,8 +25,7 @@ module ov7670_capture(
     // =================== 내부 신호 ===================
     logic vsync_prev, vsync_falling;
 
-    logic        byte_toggle;    // 0: 상위 바이트, 1: 하위 바이트
-    logic [15:0] pxlData;        // 2바이트 조합용
+    logic byte_toggle;    // 0: 상위 바이트, 1: 하위 바이트
 
     // ============= VSYNC 하강 엣지 검출 ==============
     always_ff @(posedge pclk) begin
@@ -44,13 +43,13 @@ module ov7670_capture(
         else if (href) begin
             // 첫 번째 바이트 (상위 8bit)
             if (!byte_toggle) begin
-                pxlData[15:8] <= data;
+                wData[15:8] <= data;
                 byte_toggle <= 1'b1;
                 wEn <= 1'b0;
             end
             // 두 번째 바이트 (하위 8bit)
             else begin
-                pxlData[7:0] <= data;
+                wData[7:0] <= data;
                 byte_toggle <= 1'b0;
                 wEn <= 1'b1;
             end
@@ -71,8 +70,5 @@ module ov7670_capture(
             end
         end
     end
-
-    // ============= BRAM Write Data 출력 =============
-    assign wData = pxlData;
 
 endmodule

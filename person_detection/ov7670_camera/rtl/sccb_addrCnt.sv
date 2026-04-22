@@ -5,7 +5,9 @@
 //     - SCCB 전송 완료 시 다음 레지스터로 이동
 // ==========================================
 
-module sccb_addrCnt(
+module sccb_addrCnt #(
+    parameter NUM_REGS = 90
+)(
     input clk, rstn,
 
     input txDone,
@@ -14,8 +16,6 @@ module sccb_addrCnt(
 
     output reg cfgDone
     );
-
-    localparam NUM_REGS = 18;
 
     always_ff @(posedge clk or negedge rstn) begin
         if (!rstn) begin

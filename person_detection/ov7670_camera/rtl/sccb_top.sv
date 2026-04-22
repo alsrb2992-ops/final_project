@@ -20,6 +20,8 @@ module sccb_top(
     );
 
     // ============= 내부 신호 ==============
+    localparam NUM_REGS = 90;
+
     wire ready, txDone;
 
     wire [6:0] romAddr;
@@ -29,10 +31,14 @@ module sccb_top(
     sccb_initTiming u_initTim (.clk(clk), .rstn(rstn), .ready(ready));
 
     // ========== ROM 주소 카운터 ===========
-    sccb_addrCnt u_addrCnt (.clk(clk), .rstn(rstn), .txDone(txDone), .regAddr(romAddr), .cfgDone(cfgDone));
+    sccb_addrCnt #(.NUM_REGS(NUM_REGS)) u_addrCnt (
+        .clk(clk), .rstn(rstn),
+        .txDone(txDone),
+        .regAddr(romAddr),
+        .cfgDone(cfgDone));
 
     // ============ 레지스터 ROM ============
-    sccb_regRom u_regRom (.romAddr(romAddr), .regAddr(regAddr), .regData(regData));
+    sccb_regRom #(.NUM_REGS(NUM_REGS)) u_regRom (.romAddr(romAddr), .regAddr(regAddr), .regData(regData));
 
     // =========== SCCB 컨트롤러 ============
     sccb_ctrl u_ctrl (
