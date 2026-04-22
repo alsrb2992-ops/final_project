@@ -8,12 +8,12 @@ module dcmotor_controller #(
     parameter MAX_DECEL_PER_CYCLE = 1000,  // 감속 시 (더 빠르게)
     parameter MAX_ACCEL_PER_CYCLE = MAX_DECEL_PER_CYCLE / 2  // 가속 시
 ) (
-    input              clk,
-    input              reset_n,
-    input        [3:0] car_control,
-    input              stop,
-    output logic       pwm_dc,
-    output logic [1:0] dir_dc
+    input            clk,
+    input            reset_n,
+    input      [3:0] car_control,
+    input            stop,
+    output reg       pwm_dc,
+    output reg [1:0] dir_dc
 );
     // 125MHz 클럭 기준
 
@@ -25,13 +25,13 @@ module dcmotor_controller #(
     localparam forward_back_cnt = (pwm_period_cnt * forward_back_ms) / 100;
     localparam turn_cnt = (pwm_period_cnt * turn_ms) / 100;
 
-    logic [$clog2(CLK_FREQ)-1:0] count;
-    logic [$clog2(CLK_FREQ)-1:0] period_set;  // 목표 속도
-    logic [$clog2(
+    reg [$clog2(
 CLK_FREQ
 )-1:0] current_period;  // 현재 속도 (부드럽게 변경)
-    logic [1:0] dir_set;  // 목표 방향
-    logic [1:0] current_dir;  // 현재 방향
+    reg [1:0] dir_set;  // 목표 방향
+    reg [1:0] current_dir;  // 현재 방향
+    reg [$clog2(125000000)-1:0] count;
+    reg [$clog2(125000000)-1:0] period_set;
 
     // PWM 카운터
     always @(posedge clk or negedge reset_n) begin
@@ -43,8 +43,7 @@ CLK_FREQ
         end
     end
 
-    // 목표 속도 및 방향 설정 (기존 로직 유지)
-    always_comb begin
+    always @(*) begin
         period_set = 0;
         dir_set = 2'b00;
         case (car_control)
@@ -93,7 +92,7 @@ CLK_FREQ
 
     // ===== 부드러운 가속/감속 로직 =====
     // PWM 주기(0.2ms)마다 current_period를 period_set으로 조금씩 이동
-    always_ff @(posedge clk or negedge reset_n) begin
+    always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             current_period <= 0;
             current_dir    <= 2'b00;
@@ -146,7 +145,7 @@ CLK_FREQ
     end
 
     // PWM 및 방향 출력
-    always_ff @(posedge clk or negedge reset_n) begin
+    always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             pwm_dc <= 0;
             dir_dc <= 0;
