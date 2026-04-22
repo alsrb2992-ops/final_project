@@ -9,32 +9,30 @@
 //           tx     - UART line (idle = 1)
 //=============================================================================
 module uart_tx (
-    input  logic       clk,
-    input  logic       rst,
-    input  logic       baud_tick,
-    input  logic       start,
-    input  logic [7:0] data,
-    output logic       tx,
-    output logic       busy,
-    output logic       done
+    input  wire       clk,
+    input  wire       rst,
+    input  wire       baud_tick,
+    input  wire       start,
+    input  wire [7:0] data,
+    output reg        tx,
+    output reg        busy,
+    output reg        done
 );
 
-    typedef enum logic [1:0] {
-        ST_IDLE  = 2'd0,
-        ST_START = 2'd1,
-        ST_DATA  = 2'd2,
-        ST_STOP  = 2'd3
-    } state_t;
+    localparam [1:0] ST_IDLE  = 2'd0;
+    localparam [1:0] ST_START = 2'd1;
+    localparam [1:0] ST_DATA  = 2'd2;
+    localparam [1:0] ST_STOP  = 2'd3;
 
-    state_t     state;
-    logic [7:0] shift_reg;
-    logic [2:0] bit_idx;
+    reg [1:0] state;
+    reg [7:0] shift_reg;
+    reg [2:0] bit_idx;
 
-    always_ff @(posedge clk or posedge rst) begin
+    always @(posedge clk or posedge rst) begin
         if (rst) begin
             state     <= ST_IDLE;
-            shift_reg <= '0;
-            bit_idx   <= '0;
+            shift_reg <= 8'd0;
+            bit_idx   <= 3'd0;
             tx        <= 1'b1;
             busy      <= 1'b0;
             done      <= 1'b0;

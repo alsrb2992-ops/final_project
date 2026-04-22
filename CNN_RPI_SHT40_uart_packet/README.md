@@ -14,4 +14,4 @@
 - `uart_tx.sv / uart_rx.sv`: UART 통신 물리 계층 구현
 
 ## 비고
-- Vivado 프로젝트에서 `sources_1` 및 `constrs_1`을 참조하여 빌드하십시오.
+- Vivado 프로젝트에서 `sources_1`  지금 verilog 로 변경한 상황 입니다.

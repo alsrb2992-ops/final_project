@@ -4,40 +4,40 @@
 // Purpose : Top-level module for RPi, CNN, and SHT40 Sensor Integration.
 //=============================================================================
 module UART_RPI_CNN_TOP (
-    input  logic clk,              // 100 MHz
-    input  logic rst,              // Active-High Reset
+    input  wire clk,              // 100 MHz
+    input  wire rst,              // Active-High Reset
 
-    output logic uart_tx_pin,      
-    input  logic uart_rx_pin,      
+    output wire uart_tx_pin,
+    input  wire uart_rx_pin,
 
-    input  logic rpi_signal,       // RPi GPIO (1-sec toggle on crisis)
-    input  logic cnn_signal,       // Z7-20에서 오는 단일 선
+    input  wire rpi_signal,       // RPi GPIO (1-sec toggle on crisis)
+    input  wire cnn_signal,       // Z7-20에서 오는 단일 선
 
     // SHT40 I2C Interface
-    inout  wire  sht_i2c_sda,
-    output logic sht_i2c_scl,
+    inout  wire sht_i2c_sda,
+    output wire sht_i2c_scl,
 
-    output logic led_tx_active,    
-    output logic led_rpi_active,   
-    output logic led_cnn_active    
+    output wire led_tx_active,
+    output wire led_rpi_active,
+    output wire led_cnn_active
 );
 
-    // 내부 신호 선언
-    logic        baud_tick;
-    logic [7:0]  tx_data;
-    logic        tx_start, tx_busy, tx_done;
-    logic [7:0]  rx_data;
-    logic        rx_done;
-    
-    logic        rpi_event, rpi_active;
-    logic [7:0]  cnn_data;
-    logic        cnn_event;
-    
-    logic        sht_event;
-    logic [31:0] sht_data;
+    // 내부 신호 선언 (모두 서브모듈 출력으로 구동 → wire)
+    wire        baud_tick;
+    wire [7:0]  tx_data;
+    wire        tx_start, tx_busy, tx_done;
+    wire [7:0]  rx_data;
+    wire        rx_done;
 
-    logic [7:0]  cmd_out, cmd_payload;
-    logic        cmd_valid;
+    wire        rpi_event, rpi_active;
+    wire [7:0]  cnn_data;
+    wire        cnn_event;
+
+    wire        sht_event;
+    wire [31:0] sht_data;
+
+    wire [7:0]  cmd_out, cmd_payload;
+    wire        cmd_valid;
 
     // Baud Rate Generator (115200)
     baud_gen #(.CLK_FREQ(100_000_000), .BAUD_RATE(115_200)) u_baud_gen (
@@ -62,13 +62,10 @@ module UART_RPI_CNN_TOP (
         .rpi_event(rpi_event), .rpi_active(rpi_active)
     );
 
-    // CNN Latch (단일 신호 모드로 변경된 모듈 연결)
+    // CNN Latch
     cnn_latch u_cnn_latch (
-        .clk(clk), 
-        .rst(rst), 
-        .cnn_signal(cnn_signal),   // cnn_valid 대신 cnn_signal 연결
-        .cnn_data(cnn_data), 
-        .cnn_event(cnn_event)
+        .clk(clk), .rst(rst), .cnn_signal(cnn_signal),
+        .cnn_data(cnn_data), .cnn_event(cnn_event)
     );
 
     // SHT40 I2C Controller
@@ -78,7 +75,7 @@ module UART_RPI_CNN_TOP (
         .sht_data(sht_data), .sht_valid(sht_event)
     );
 
-    // Packet Builder (SHT40 Multi-byte Support)
+    // Packet Builder
     packet_builder u_pkt_builder (
         .clk(clk), .rst(rst),
         .rpi_event(rpi_event), .rpi_active(rpi_active),
