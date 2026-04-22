@@ -6,8 +6,8 @@ module uart_rx #(
     input clk,
     input reset_n,
     input rx,
-    output logic [7:0] data_out,
-    output logic rx_done
+    output reg [7:0] data_out,
+    output reg rx_done
 );
 
     localparam 
@@ -18,12 +18,12 @@ module uart_rx #(
     
     localparam DIVIDER_COUNT = 125_000_000 / (BPS * 16);
 
-    logic [1:0] r_state;         
-    logic [3:0] r_bit_cnt;       
-    logic [7:0] r_data_reg;      
-    logic [15:0] r_baud_cnt;     
-    logic        r_baud_tick;    
-    logic [4:0]  r_baud_tick_cnt;
+    reg [1:0] r_state;         
+    reg [3:0] r_bit_cnt;       
+    reg [7:0] r_data_reg;      
+    reg [15:0] r_baud_cnt;     
+    reg        r_baud_tick;    
+    reg [4:0]  r_baud_tick_cnt;
 
    always @(posedge clk, negedge reset_n) begin
         if (!reset_n) begin

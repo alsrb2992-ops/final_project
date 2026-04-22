@@ -2,20 +2,20 @@
 `include "RCcar_define.vh"
 
 module command_decoder (
-    input logic clk,
-    input logic reset_n,
-    input logic rx_done,
-    input logic [7:0] rx_data,
-    input logic auto_mode,
-    input logic brake_signal,  // 자동 제어 시 제동 신호 입력
-    input logic [2:0] direction_degree, // 거리에 따라 자동으로 제어할 때 사용할 입력
-    output logic [3:0] car_control
+    input wire clk,
+    input wire reset_n,
+    input wire rx_done,
+    input wire [7:0] rx_data,
+    input wire auto_mode,
+    input wire brake_signal,  // 자동 제어 시 제동 신호 입력
+    input wire [2:0] direction_degree, // 거리에 따라 자동으로 제어할 때 사용할 입력
+    output reg [3:0] car_control
 );
 
-    logic brake_signal_prev;
-    wire  brake_siganal_edge = brake_signal & ~brake_signal_prev;
+    reg brake_signal_prev;
+    wire brake_siganal_edge = brake_signal & ~brake_signal_prev;
 
-    always_ff @(posedge clk or negedge reset_n) begin
+    always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             brake_signal_prev <= 0;
         end else begin

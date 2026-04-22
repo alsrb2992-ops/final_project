@@ -5,13 +5,13 @@ module servo_motor_controller (
     input clk,
     input reset_n,
     input [3:0] car_control,
-    output logic pwm_servo
+    output reg pwm_servo
 );
 
     // 1.5ms 가 중간
 
-    logic [$clog2(125000000)-1:0] count;
-    logic [$clog2(125000000)-1:0] period_set;
+    reg [$clog2(125000000)-1:0] count;
+    reg [$clog2(125000000)-1:0] period_set;
 
     localparam pwm_period = 50;  // Hz  
     localparam center_ms = 1.5;  // ms     
@@ -42,7 +42,7 @@ module servo_motor_controller (
         end
     end
 
-    always_comb begin
+    always @(*) begin
         period_set = 0;
         case (car_control)
             `RC_STOP: begin  // 정지
@@ -76,7 +76,7 @@ module servo_motor_controller (
         endcase
     end
 
-    always_ff @(posedge clk or negedge reset_n) begin
+    always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             pwm_servo <= 0;
         end else begin

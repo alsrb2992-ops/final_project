@@ -6,8 +6,8 @@ module dcmotor_controller (
     input              reset_n,
     input        [3:0] car_control,
     input              stop,
-    output logic       pwm_dc,
-    output logic [1:0] dir_dc
+    output reg       pwm_dc,
+    output reg [1:0] dir_dc
 );
     // 10MHz
 
@@ -19,20 +19,21 @@ module dcmotor_controller (
     localparam forward_back_cnt = (pwm_period_cnt * forward_back_ms) / 100;
     localparam turn_cnt = (pwm_period_cnt * turn_ms) / 100;
 
-    logic [$clog2(125000000)-1:0] count;
-    logic [$clog2(125000000)-1:0] period_set;
-    logic [1:0] dir_set;
+    reg [$clog2(125000000)-1:0] count;
+    reg [$clog2(125000000)-1:0] period_set;
+    reg [1:0] dir_set;
 
     always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             count <= 0;
-        end else begin
+        end
+        else begin
             if (count > pwm_period_cnt) count <= 0;
             else count <= count + 1;
         end
     end
 
-    always_comb begin
+    always @(*) begin
         period_set = 0;
         dir_set = 2'b00;
         case (car_control)
@@ -75,7 +76,7 @@ module dcmotor_controller (
         endcase
     end
 
-    always_ff @(posedge clk or negedge reset_n) begin
+    always @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             pwm_dc <= 0;
             dir_dc <= 0;

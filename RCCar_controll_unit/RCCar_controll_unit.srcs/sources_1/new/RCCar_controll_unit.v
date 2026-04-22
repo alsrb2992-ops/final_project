@@ -1,23 +1,22 @@
 `timescale 1ns / 1ps
 
 module RCCar_controll_unit (
-    input  logic       clk,
-    input  logic       reset_n,
-    input  logic       bluetooth_rx,
-    input  logic       stop,
-    input  logic       brake_signal,
-    input  logic       warning_signal,
-    input  logic [2:0] direction_degree,
-    output logic       pwm_servo,
-    output logic       pwm_dc,
-    output logic [1:0] dir_dc
+    input  wire       clk,
+    input  wire       reset_n,
+    input  wire       bluetooth_rx,
+    input  wire       stop,
+    input  wire       brake_signal,
+    input  wire       warning_signal,
+    input  wire [2:0] direction_degree,
+    output wire       pwm_servo,
+    output wire       pwm_dc,
+    output wire [1:0] dir_dc
 );
 
-    logic [7:0] rx_data;
-    logic rx_done;
-    logic [3:0] car_control;
-    logic auto_mode;
-    logic [2:0] auto_direction;
+    wire [7:0] rx_data;
+    wire rx_done;
+    wire [3:0] car_control;
+    wire auto_mode;
 
     uart_rx BLUETOOTH_RX (
         .clk(clk),
