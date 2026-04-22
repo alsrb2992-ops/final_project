@@ -1,6 +1,10 @@
 // ============================================================
 // lidar_top.sv
 // YDLIDAR X4PRO 충돌방지 시스템 최상위 모듈
+//
+// 개선사항:
+// 1. interference_filter - Median filter + Range validation
+// 2. collision_detector - Hysteresis 추가
 // ============================================================
 module lidar_top #(
     parameter CLK_FREQ              = 125_000_000,
@@ -13,63 +17,65 @@ module lidar_top #(
     parameter LEFT_END_ANGLE_DEG    = 9'd315,
     parameter BRAKE_DIST_MM         = 14'd300,
     parameter WARN_DIST_MM          = 14'd600,
+    parameter HYSTERESIS_MM         = 14'd100,      // 히스테리시스
     parameter HOLD_MS               = 32'd200,
     parameter SIDE_HOLD_MS          = 32'd100,
     parameter TURN_THRESHOLD_MM     = 14'd800,
     parameter BIG_TURN_DIFF_MM      = 14'd100
 ) (
-    input  logic       clk,
-    input  logic       rst_n,
-    input  logic       lidar_rx,
-    output logic       wifi_tx,
-    output logic       brake_gpio,
-    output logic       warning_led,
-    output logic       side_warning_signal_gpio,
-    output logic [2:0] direction_degree_gpio
+    input  wire       clk,
+    input  wire       rst_n,
+    input  wire       lidar_rx,
+    output wire       wifi_tx,
+    output wire       brake_gpio,
+    output wire       warning_led,
+    output wire       side_warning_signal_gpio,
+    output wire [2:0] direction_degree_gpio
 );
 
-    logic [ 7:0] uart_data;
-    logic        uart_valid;
-    logic [ 7:0] sync_byte;
-    logic        sync_byte_valid;
-    logic        sync_pkt_start;
-    logic        parser_ct_start;
-    logic [ 7:0] parser_lsn;
-    logic [15:0] parser_fsa;
-    logic [15:0] parser_lsa;
-    logic [15:0] parser_cs;
-    logic [15:0] parser_si_raw;
-    logic        parser_si_valid;
-    logic        parser_pkt_done;
-    logic        parser_cs_ok;
-    logic        parser_fsa_lsa_valid;
-    logic [13:0] dist_out;
-    logic [ 1:0] dist_is;
-    logic        dist_valid;
-    logic [ 8:0] angle_out;
-    logic        angle_valid;
+    wire [ 7:0] uart_data;
+    wire        uart_valid;
+    wire [ 7:0] sync_byte;
+    wire        sync_byte_valid;
+    wire        sync_pkt_start;
+    wire        parser_ct_start;
+    wire [ 7:0] parser_lsn;
+    wire [15:0] parser_fsa;
+    wire [15:0] parser_lsa;
+    wire [15:0] parser_cs;
+    wire [15:0] parser_si_raw;
+    wire        parser_si_valid;
+    wire        parser_pkt_done;
+    wire        parser_cs_ok;
+    wire        parser_fsa_lsa_valid;
+    wire [13:0] dist_out;
+    wire [ 1:0] dist_is;
+    wire        dist_valid;
+    wire [ 8:0] angle_out;
+    wire        angle_valid;
 
-    logic        side_warning_signal;
-    logic [13:0] left_min_distance, right_min_distance;
-    // distance_calc: si_valid +1클럭 → dist_valid
-    // angle_calc:    si_valid +3클럭 → angle_valid (stage1, stage2 파이프라인)
-    // 차이 2클럭 → dist 를 2클럭 딜레이
-    logic [13:0] dist_out_d1, dist_out_d2;
-    logic [1:0] dist_is_d1, dist_is_d2;
-    logic dist_valid_d1, dist_valid_d2;
-    logic cs_ok_d1, cs_ok_d2;
-    logic [13:0] filt_dist;
-    logic [ 8:0] filt_angle;
-    logic        filt_valid;
-    logic        brake_signal;
-    logic        warning_signal;
-    logic        round_done_sig;
+    wire        side_warning_signal;
+    wire [13:0] left_min_distance, right_min_distance;
 
-    logic [ 2:0] direction_degree;
+    // Distance 2클럭 딜레이
+    reg [13:0] dist_out_d1, dist_out_d2;
+    reg [1:0] dist_is_d1, dist_is_d2;
+    reg dist_valid_d1, dist_valid_d2;
+    reg cs_ok_d1, cs_ok_d2;
 
-    logic [7:0] w_rx_data, w_rx_rdata, w_tx_rdata;
-    logic w_tx_full, w_rx_empty, w_tx_empty, w_tx_busy;
+    wire [13:0] filt_dist;
+    wire [ 8:0] filt_angle;
+    wire        filt_valid;
+    wire        brake_signal;
+    wire        warning_signal;
+    wire        round_done_sig;
 
+    wire [ 2:0] direction_degree;
+
+    wire [7:0] w_rx_data, w_rx_rdata, w_tx_rdata;
+    wire w_tx_full, w_rx_empty, w_tx_empty, w_tx_busy;
+
+    // ===== UART RX =====
     uart_rx_lidar #(
         .CLK_FREQ (CLK_FREQ),
         .BAUD_RATE(BAUD_RATE)
@@ -81,6 +87,7 @@ module lidar_top #(
         .valid(uart_valid)
     );
 
+    // ===== FIFO (WiFi 전송용) =====
     top_fifo U_fifo_rx (
         .clk(clk),
         .reset(rst_n),
@@ -113,10 +120,7 @@ module lidar_top #(
         .tx_done(tx_done)
     );
 
-    // ---------------------------------------------------------------------
-
-
-
+    // ===== Packet Sync & Parser =====
     packet_sync u_sync (
         .clk(clk),
         .rst_n(rst_n),
@@ -145,6 +149,7 @@ module lidar_top #(
         .cs_ok(parser_cs_ok)
     );
 
+    // ===== Distance & Angle Calculation =====
     distance_calc u_dist (
         .clk(clk),
         .rst_n(rst_n),
@@ -168,17 +173,17 @@ module lidar_top #(
         .angle_valid(angle_valid)
     );
 
-    // dist 2클럭 딜레이
-    always_ff @(posedge clk or negedge rst_n) begin
+    // ===== Distance 2클럭 딜레이 (angle과 동기화) =====
+    always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            dist_out_d1   <= '0;
-            dist_out_d2   <= '0;
-            dist_is_d1    <= '0;
-            dist_is_d2    <= '0;
-            dist_valid_d1 <= '0;
-            dist_valid_d2 <= '0;
-            cs_ok_d1      <= '0;
-            cs_ok_d2      <= '0;
+            dist_out_d1   <= 0;
+            dist_out_d2   <= 0;
+            dist_is_d1    <= 0;
+            dist_is_d2    <= 0;
+            dist_valid_d1 <= 0;
+            dist_valid_d2 <= 0;
+            cs_ok_d1      <= 0;
+            cs_ok_d2      <= 0;
         end else begin
             dist_out_d1   <= dist_out;
             dist_is_d1    <= dist_is;
@@ -192,6 +197,7 @@ module lidar_top #(
         end
     end
 
+    // ===== Interference Filter (개선: Median + Range Validation) =====
     interference_filter u_filter (
         .clk(clk),
         .rst_n(rst_n),
@@ -204,13 +210,14 @@ module lidar_top #(
         .filtered_valid(filt_valid)
     );
 
+    // ===== Round Detector =====
     round_detector u_round (
         .pkt_start(sync_pkt_start),
         .ct_start_bit(parser_ct_start),
         .round_done(round_done_sig)
     );
 
-
+    // ===== Collision Detector (개선: 히스테리시스) =====
     collision_detector #(
         .FRONT_ANGLE_DEG      (FRONT_ANGLE_DEG),
         .BEHIND_ANGLE_DEG     (BEHIND_ANGLE_DEG),
@@ -219,7 +226,8 @@ module lidar_top #(
         .LEFT_START_ANGLE_DEG (LEFT_START_ANGLE_DEG),
         .LEFT_END_ANGLE_DEG   (LEFT_END_ANGLE_DEG),
         .BRAKE_DIST_MM        (BRAKE_DIST_MM),
-        .WARN_DIST_MM         (WARN_DIST_MM)
+        .WARN_DIST_MM         (WARN_DIST_MM),
+        .HYSTERESIS_MM        (HYSTERESIS_MM)
     ) u_collision (
         .clk                (clk),
         .rst_n              (rst_n),
@@ -234,6 +242,7 @@ module lidar_top #(
         .right_min_distance (right_min_distance)
     );
 
+    // ===== Left/Right Comparator =====
     left_right_comparator #(
         .TURN_THRESHOLD_MM(TURN_THRESHOLD_MM),
         .BIG_TURN_DIFF_MM (BIG_TURN_DIFF_MM)
@@ -244,6 +253,7 @@ module lidar_top #(
         .direction_degree  (direction_degree)
     );
 
+    // ===== Brake Output =====
     brake_output #(
         .CLK_FREQ(CLK_FREQ),
         .HOLD_MS(HOLD_MS),

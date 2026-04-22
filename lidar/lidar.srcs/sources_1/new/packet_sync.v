@@ -8,39 +8,37 @@
 //         0xAA 뒤에 다른 값 오면 0xAA 도 데이터로 통과
 // ============================================================
 module packet_sync (
-    input logic clk,
-    input logic rst_n,
+    input wire clk,
+    input wire rst_n,
 
-    input logic [7:0] rx_data,
-    input logic       rx_valid,
+    input wire [7:0] rx_data,
+    input wire       rx_valid,
 
-    output logic [7:0] byte_out,
-    output logic       byte_valid,
-    output logic       pkt_start
+    output reg [7:0] byte_out,
+    output reg       byte_valid,
+    output reg       pkt_start
 );
 
-    typedef enum logic [2:0] {
-        WAIT_AA     = 3'b000,
-        WAIT_55     = 3'b001,
-        PASS        = 3'b010,
-        PASS_GOT_AA = 3'b011   // PASS 중 0xAA 받고 다음 바이트 대기
-    } sync_state_t;
+    localparam WAIT_AA = 3'b000;
+    localparam WAIT_55 = 3'b001;
+    localparam PASS = 3'b010;
+    localparam   PASS_GOT_AA = 3'b011;  // PASS 중 0xAA 받고 다음 바이트 대기
 
-    sync_state_t       state;
-    logic        [7:0] pending_data;  // 0xAA 뒤에 온 바이트 임시 저장
-    logic              has_pending;  // pending 유효 플래그
+    reg [2:0] state;
+    reg [7:0] pending_data;  // 0xAA 뒤에 온 바이트 임시 저장
+    reg has_pending;  // pending 유효 플래그
 
-    always_ff @(posedge clk or negedge rst_n) begin
+    always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             state        <= WAIT_AA;
-            byte_out     <= '0;
-            byte_valid   <= '0;
-            pkt_start    <= '0;
-            pending_data <= '0;
-            has_pending  <= '0;
+            byte_out     <= 0;
+            byte_valid   <= 0;
+            pkt_start    <= 0;
+            pending_data <= 0;
+            has_pending  <= 0;
         end else begin
-            byte_valid <= '0;
-            pkt_start  <= '0;
+            byte_valid <= 0;
+            pkt_start  <= 0;
 
             // pending 데이터 출력 (rx_valid 없는 클럭에 처리)
             if (has_pending && !rx_valid) begin

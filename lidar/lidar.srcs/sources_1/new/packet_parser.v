@@ -9,74 +9,72 @@
 //   pkt_done 시점에 cs_ok 출력
 // ============================================================
 module packet_parser (
-    input logic clk,
-    input logic rst_n,
+    input wire clk,
+    input wire rst_n,
 
-    input logic [7:0] byte_in,
-    input logic       byte_valid,
-    input logic       pkt_start,
+    input wire [7:0] byte_in,
+    input wire       byte_valid,
+    input wire       pkt_start,
 
-    output logic ct_start_bit,
-    output logic [7:0] lsn,
-    output logic [15:0] fsa_raw,
-    output logic [15:0] lsa_raw,
-    output logic [15:0] cs_rx,
-    output logic        fsa_lsa_valid, // FSA+LSA 파싱 완료 펄스 (S1 전에 출력)
+    output reg ct_start_bit,
+    output reg [7:0] lsn,
+    output reg [15:0] fsa_raw,
+    output reg [15:0] lsa_raw,
+    output reg [15:0] cs_rx,
+    output reg        fsa_lsa_valid, // FSA+LSA 파싱 완료 펄스 (S1 전에 출력)
 
-    output logic [15:0] si_raw,
-    output logic        si_valid,
+    output reg [15:0] si_raw,
+    output reg        si_valid,
 
-    output logic pkt_done,
-    output logic cs_ok      // CS 검증 결과 (pkt_done 과 동시)
+    output reg pkt_done,
+    output reg cs_ok      // CS 검증 결과 (pkt_done 과 동시)
 );
 
     localparam [15:0] PH = 16'h55AA;
 
-    typedef enum logic [3:0] {
-        S_CT    = 4'd0,
-        S_LSN   = 4'd1,
-        S_FSA_L = 4'd2,
-        S_FSA_H = 4'd3,
-        S_LSA_L = 4'd4,
-        S_LSA_H = 4'd5,
-        S_CS_L  = 4'd6,
-        S_CS_H  = 4'd7,
-        S_SI_L  = 4'd8,
-        S_SI_H  = 4'd9
-    } parse_state_t;
+    localparam S_CT = 4'd0;
+    localparam S_LSN = 4'd1;
+    localparam S_FSA_L = 4'd2;
+    localparam S_FSA_H = 4'd3;
+    localparam S_LSA_L = 4'd4;
+    localparam S_LSA_H = 4'd5;
+    localparam S_CS_L = 4'd6;
+    localparam S_CS_H = 4'd7;
+    localparam S_SI_L = 4'd8;
+    localparam S_SI_H = 4'd9;
 
-    parse_state_t state;
-    logic [7:0]   si_cnt;
-    logic [7:0]   si_byte_l;
-    logic [7:0]   ct_byte;     // CT 원본 저장 (LSN 수신 시 XOR 용)
-    logic [15:0]  cs_calc;     // CS 누적 계산값
+    reg [ 3:0] state;
+    reg [ 7:0] si_cnt;
+    reg [ 7:0] si_byte_l;
+    reg [ 7:0] ct_byte;  // CT 원본 저장 (LSN 수신 시 XOR 용)
+    reg [15:0] cs_calc;  // CS 누적 계산값
 
-    always_ff @(posedge clk or negedge rst_n) begin
+    always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             state         <= S_CT;
-            ct_start_bit  <= '0;
-            ct_byte       <= '0;
-            lsn           <= '0;
-            fsa_raw       <= '0;
-            lsa_raw       <= '0;
-            cs_rx         <= '0;
-            fsa_lsa_valid <= '0;
-            si_raw        <= '0;
-            si_valid      <= '0;
-            pkt_done      <= '0;
-            cs_ok         <= '0;
-            si_cnt        <= '0;
-            si_byte_l     <= '0;
+            ct_start_bit  <= 0;
+            ct_byte       <= 0;
+            lsn           <= 0;
+            fsa_raw       <= 0;
+            lsa_raw       <= 0;
+            cs_rx         <= 0;
+            fsa_lsa_valid <= 0;
+            si_raw        <= 0;
+            si_valid      <= 0;
+            pkt_done      <= 0;
+            cs_ok         <= 0;
+            si_cnt        <= 0;
+            si_byte_l     <= 0;
             cs_calc       <= PH;
         end else begin
-            si_valid      <= '0;
-            pkt_done      <= '0;
-            cs_ok         <= '0;
-            fsa_lsa_valid <= '0;
+            si_valid      <= 0;
+            pkt_done      <= 0;
+            cs_ok         <= 0;
+            fsa_lsa_valid <= 0;
 
             if (pkt_start) begin
                 state   <= S_CT;
-                si_cnt  <= '0;
+                si_cnt  <= 0;
                 cs_calc <= PH;  // 새 패킷마다 PH 로 초기화
             end else if (byte_valid) begin
                 case (state)
@@ -157,7 +155,7 @@ module packet_parser (
                             cs_ok  <= ((cs_calc ^ {byte_in, si_byte_l})
                                         == cs_rx);
                             state <= S_CT;
-                            si_cnt <= '0;
+                            si_cnt <= 0;
                         end else begin
                             state <= S_SI_L;
                         end

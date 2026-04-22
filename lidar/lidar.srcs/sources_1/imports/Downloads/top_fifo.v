@@ -7,8 +7,8 @@ module top_fifo (
     input        wr,
     input        rd,
     output [7:0] rdata,
-    output full,
-    output empty
+    output       full,
+    output       empty
 );
 
     wire [3:0] w_wptr, w_rptr;
@@ -16,7 +16,7 @@ module top_fifo (
     reg_file U_reg_file (
         .clk(clk),
         .wdata(wdata),
-        .wr(wr && (~full) ),
+        .wr(wr && (~full)),
         .rd(rd),
         .waddr(w_wptr),
         .raddr(w_rptr),

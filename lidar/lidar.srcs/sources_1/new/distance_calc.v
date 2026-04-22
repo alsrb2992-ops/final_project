@@ -14,15 +14,15 @@
 // IS = 3 → 주변광 간섭
 // ============================================================
 module distance_calc (
-    input logic clk,
-    input logic rst_n,
+    input wire clk,
+    input wire rst_n,
 
-    input logic [15:0] si_raw,   // {byte2, byte1}
-    input logic        si_valid, // Si 1개 입력 펄스
+    input wire [15:0] si_raw,   // {byte2, byte1}
+    input wire        si_valid, // Si 1개 입력 펄스
 
-    output logic [13:0] distance,   // mm 단위 거리 (최대 16383mm)
-    output logic [ 1:0] is_flag,    // 간섭 플래그
-    output logic        calc_valid  // 계산 완료 펄스
+    output reg [13:0] distance,   // mm 단위 거리 (최대 16383mm)
+    output reg [ 1:0] is_flag,    // 간섭 플래그
+    output reg        calc_valid  // 계산 완료 펄스
 );
 
     // ----------------------------------------------------------
@@ -43,13 +43,13 @@ module distance_calc (
     // ----------------------------------------------------------
     wire [13:0] dist_calc = {di_high, di_low};  // di_high di_low
 
-    always_ff @(posedge clk or negedge rst_n) begin
+    always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            distance   <= '0;
-            is_flag    <= '0;
-            calc_valid <= '0;
+            distance   <= 0;
+            is_flag    <= 0;
+            calc_valid <= 0;
         end else begin
-            calc_valid <= '0;
+            calc_valid <= 0;
 
             if (si_valid) begin
                 is_flag    <= si_raw[1:0];  // IS = byte1[1:0]

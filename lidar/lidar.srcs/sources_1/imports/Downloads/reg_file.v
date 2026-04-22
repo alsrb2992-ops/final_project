@@ -5,15 +5,15 @@ module reg_file (
     input  [7:0] wdata,
     input        wr,
     input        rd,
-    input [3:0]  waddr,
-    input [3:0]  raddr,
+    input  [3:0] waddr,
+    input  [3:0] raddr,
     output [7:0] rdata
 );
 
-    logic [7:0] reg_file [0:15];
+    reg [7:0] reg_file[0:15];
 
-    always_ff @( posedge clk ) begin
-        if ( wr ) begin
+    always @(posedge clk) begin
+        if (wr) begin
             reg_file[waddr] <= wdata;
         end
     end
