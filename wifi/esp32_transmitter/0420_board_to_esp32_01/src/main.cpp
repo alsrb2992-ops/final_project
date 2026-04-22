@@ -24,6 +24,7 @@ void setup() {
 
     // Board (FPGA)
     Serial1.begin(BOARD_BAUD, SERIAL_8N1, BOARD_RX_PIN, BOARD_TX_PIN);
+    pinMode(BOARD_RX_PIN, INPUT_PULLUP);  // GPIO18 플로팅 방지
     Serial.printf("[UART1] Board  RX=GPIO%d TX=GPIO%d BAUD=%d\n",
                   BOARD_RX_PIN, BOARD_TX_PIN, BOARD_BAUD);
 
