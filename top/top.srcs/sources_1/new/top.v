@@ -17,21 +17,21 @@ module top #(
     parameter BIG_TURN_DIFF_MM      = 14'd100
 
 ) (
-    input  logic       sysclk,
-    input  logic       reset_n,
-    input  logic       lidar_rx,
-    input  logic       bluetooth_rx,
-    output logic       wifi_tx,
-    output logic       pwm_servo,
-    output logic       pwm_dc,
-    output logic [1:0] dir_dc,
-    output logic       brake_gpio,
-    output logic       warning_led,
-    output logic       side_warning_signal_gpio
+    input             sysclk,
+    input             reset_n,
+    input             lidar_rx,
+    input             bluetooth_rx,
+    output wire       wifi_tx,
+    output wire       pwm_servo,
+    output wire       pwm_dc,
+    output wire [1:0] dir_dc,
+    output wire       brake_gpio,
+    output wire       warning_led,
+    output wire       side_warning_signal_gpio
 );
 
 
-    logic [2:0] direction_degree_gpio;
+    wire [2:0] direction_degree_gpio;
     wire rst_n = ~reset_n; // 리셋 신호는 active low이므로 반전하여 사용
     wire clk = sysclk;
 
