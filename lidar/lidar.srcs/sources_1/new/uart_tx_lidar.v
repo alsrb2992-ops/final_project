@@ -79,6 +79,7 @@ module uart_tx_lidar #(
                     if (clk_cnt == CLKS_PER_BIT - 1) begin
                         clk_cnt <= 0;
                         state   <= IDLE;
+                        ready   <= 1'b1;
                     end else begin
                         clk_cnt <= clk_cnt + 1;
                     end

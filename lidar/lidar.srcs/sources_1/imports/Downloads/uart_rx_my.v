@@ -37,8 +37,8 @@ module uart_rx_my (
         end
     end
 
-    always @(posedge clk or posedge reset) begin
-        if (reset) begin
+    always @(posedge clk or negedge reset) begin
+        if (!reset) begin
             r_state <= IDLE;
             rx_data <= 8'b0;
             rx_done <= 1'b0;

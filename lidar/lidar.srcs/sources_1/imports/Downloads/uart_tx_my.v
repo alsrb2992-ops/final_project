@@ -16,7 +16,7 @@ module uart_tx_my (
     parameter S_STOP = 2'b11;
 
     parameter BPS = 128000;
-    parameter DIVIDER_CNT = 100_000_000 / BPS;
+    parameter DIVIDER_CNT = 125_000_000 / BPS;
 
 
     reg [1:0] r_state;
@@ -40,8 +40,8 @@ module uart_tx_my (
         end
     end
 
-    always @(posedge clk, posedge reset) begin
-        if (reset) begin
+    always @(posedge clk, negedge reset) begin
+        if (!reset) begin
             r_state <= S_IDLE;
             r_bit_cnt <= 0;
             r_data <= 0;
