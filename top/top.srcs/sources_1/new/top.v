@@ -1,22 +1,23 @@
 `timescale 1ns / 1ps
 
 module top #(
-    parameter CLK_FREQ              = 125_000_000,
-    parameter BAUD_RATE             = 128_000,
-    parameter FRONT_ANGLE_DEG       = 9'd30,
-    parameter BEHIND_ANGLE_DEG      = 9'd40,
-    parameter RIGHT_START_ANGLE_DEG = 9'd30,
-    parameter RIGHT_END_ANGLE_DEG   = 9'd90,
-    parameter LEFT_START_ANGLE_DEG  = 9'd270,
-    parameter LEFT_END_ANGLE_DEG    = 9'd330,
-    parameter BRAKE_DIST_MM         = 14'd300,
-    parameter WARN_DIST_MM          = 14'd600,
-    parameter HOLD_MS               = 32'd200,
-    parameter SIDE_HOLD_MS          = 32'd100,
-    parameter TURN_THRESHOLD_MM     = 14'd800,
-    parameter BIG_TURN_DIFF_MM      = 14'd100,
-    parameter MAX_CHANGE_PER_CYCLE  = CLK_FREQ * 20 / 1000 / 8,
-    parameter MAX_DECEL_PER_CYCLE   = 1000
+    parameter CLK_FREQ = 125_000_000,
+    parameter BAUD_RATE = 128_000,  // uart baud_rate
+    parameter FRONT_ANGLE_DEG       = 9'd30,                // lidar 0도 기준으로 부터 양방향으로 전방이라 인식하는 각도
+    parameter BEHIND_ANGLE_DEG      = 9'd40,                // lidar 0도 기준으로 부터 양방향으로 후방이라 인식하는 각도
+    parameter RIGHT_START_ANGLE_DEG = 9'd30,  // 오른쪽 시작 각도
+    parameter RIGHT_END_ANGLE_DEG = 9'd90,  // 오른쪽 끝 각도
+    parameter LEFT_START_ANGLE_DEG = 9'd270,  // 왼쪽 시작 각도
+    parameter LEFT_END_ANGLE_DEG = 9'd330,  // 왼쪽 끝 각도
+    parameter BRAKE_DIST_MM         = 14'd120,              // 브레이크 해야하는 인식 거리
+    parameter WARN_DIST_MM = 14'd200,  // warning 을 알려주는 거리
+    parameter HOLD_MS = 32'd200,  // brake 및 warning 유지 시간
+    parameter SIDE_HOLD_MS = 32'd100,  // side warning 유지 시간
+    parameter TURN_THRESHOLD_MM = 14'd800,  // 좌우, 최소 인식 거리
+    parameter BIG_TURN_DIFF_MM      = 14'd100,              // 좌우 차이에 의한 방향 조정 수치
+    parameter MAX_CHANGE = 8,  //  20ms 마다 바뀌는 방향 수치
+    parameter MAX_DECEL_PER_CYCLE   = 1000  ,                // 한번에 바뀔 수 있는 dc 수치
+    parameter DIR_CHANGE_FREQUENCY  = 2_500_000             // 좌우 거리 유지하는 시간
 ) (
     input             sysclk,
     input             reset_n,
@@ -50,7 +51,8 @@ module top #(
         .HOLD_MS              (HOLD_MS),
         .SIDE_HOLD_MS         (SIDE_HOLD_MS),
         .TURN_THRESHOLD_MM    (TURN_THRESHOLD_MM),
-        .BIG_TURN_DIFF_MM     (BIG_TURN_DIFF_MM)
+        .BIG_TURN_DIFF_MM     (BIG_TURN_DIFF_MM),
+        .DIR_CHANGE_FREQUENCY (DIR_CHANGE_FREQUENCY)
     ) u_lidar_top (
         .clk(clk),
         .rst_n(rst_n),
@@ -64,7 +66,7 @@ module top #(
 
     RCCar_controll_unit #(
         .CLK_FREQ(CLK_FREQ),
-        .MAX_CHANGE_PER_CYCLE(MAX_CHANGE_PER_CYCLE),
+        .MAX_CHANGE(MAX_CHANGE),
         .MAX_DECEL_PER_CYCLE(MAX_DECEL_PER_CYCLE)       // 감속은 최대 변화량 전체
     ) u_RCCar_controll_unit (
         .clk             (clk),

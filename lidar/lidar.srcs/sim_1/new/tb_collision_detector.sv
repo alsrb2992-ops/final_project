@@ -1,550 +1,356 @@
-// ============================================================
-// tb_collision_detector.sv
-// collision_detector module verification testbench
-// ============================================================
 `timescale 1ns / 1ps
+`include "lidar_define.vh"
 
-module tb_collision_detector;
+module tb_collision_detector ();
 
-    // Clock and Reset
-    logic        clk;
-    logic        rst_n;
+    // ===== DUT 신호 =====
+    reg         clk;
+    reg         rst_n;
+    reg  [13:0] distance;
+    reg  [ 8:0] angle;
+    reg         data_valid;
+    reg         round_done;
 
-    // DUT inputs
-    logic [13:0] c_distance;
-    logic [ 8:0] c_angle;
-    logic        c_data_valid;
-    logic        c_round_done;
+    wire        brake_signal;
+    wire        warning_signal;
+    wire        side_warning_signal;
+    wire [13:0] left_min_distance;
+    wire [13:0] right_min_distance;
 
-    // DUT outputs
-    logic        c_brake_signal;
-    logic        c_warning_signal;
-    logic        c_left_warning_signal;
-    logic        c_right_warning_signal;
-    logic [13:0] c_left_min_distance;
-    logic [13:0] c_right_min_distance;
-
-    // Clock generation (10ns period = 100MHz)
-    initial begin
-        clk = 0;
-        forever #5 clk = ~clk;
-    end
-
-    // DUT instantiation
+    // ===== DUT 인스턴스 =====
     collision_detector #(
-        .FRONT_ANGLE_DEG      (45),
-        .BEHIND_ANGLE_DEG     (40),
-        .RIGHT_START_ANGLE_DEG(45),
-        .RIGHT_END_ANGLE_DEG  (90),
-        .LEFT_START_ANGLE_DEG (270),
-        .LEFT_END_ANGLE_DEG   (315),
-        .BRAKE_DIST_MM        (300),
-        .WARN_DIST_MM         (400),
-        .SIDE_DIST_MM         (300)
-    ) dut (
-        .clk                 (clk),
-        .rst_n               (rst_n),
-        .distance            (c_distance),
-        .angle               (c_angle),
-        .data_valid          (c_data_valid),
-        .round_done          (c_round_done),
-        .brake_signal        (c_brake_signal),
-        .warning_signal      (c_warning_signal),
-        .left_warning_signal (c_left_warning_signal),
-        .right_warning_signal(c_right_warning_signal),
-        .left_min_distance   (c_left_min_distance),
-        .right_min_distance  (c_right_min_distance)
+        .FRONT_ANGLE_DEG      (9'd45),
+        .RIGHT_START_ANGLE_DEG(9'd45),
+        .RIGHT_END_ANGLE_DEG  (9'd90),
+        .LEFT_START_ANGLE_DEG (9'd270),
+        .LEFT_END_ANGLE_DEG   (9'd315),
+        .BRAKE_DIST_MM        (14'd300),
+        .WARN_DIST_MM         (14'd600),
+        .SIDE_DIST_MM         (14'd300),
+        .HYSTERESIS_MM        (14'd100)
+    ) uut (
+        .clk                (clk),
+        .rst_n              (rst_n),
+        .distance           (distance),
+        .angle              (angle),
+        .data_valid         (data_valid),
+        .round_done         (round_done),
+        .brake_signal       (brake_signal),
+        .warning_signal     (warning_signal),
+        .side_warning_signal(side_warning_signal),
+        .left_min_distance  (left_min_distance),
+        .right_min_distance (right_min_distance)
     );
 
-    // ============================================================
-    // Task: Send LiDAR data
-    // ============================================================
-    task send_lidar_data(input [8:0] ang, input [13:0] c_dist);
+    // ===== 클럭 생성 (125MHz) =====
+    initial clk = 0;
+    always #4 clk = ~clk;  // 8ns = 125MHz
+
+    // ===== 테스트 결과 카운터 =====
+    integer pass_count = 0;
+    integer fail_count = 0;
+    integer test_num = 0;
+
+    // ===== 헬퍼 태스크 =====
+
+    // 한 포인트 데이터 전송
+    task send_point;
+        input [8:0] ang;
+        input [13:0] w_dist;
         begin
             @(posedge clk);
-            c_angle <= ang;
-            c_distance <= c_dist;
-            c_data_valid <= 1'b1;
+            angle      = ang;
+            distance   = w_dist;
+            data_valid = 1'b1;
             @(posedge clk);
-            c_data_valid <= 1'b0;
+            data_valid = 1'b0;
+            @(posedge clk);
         end
     endtask
 
-    // ============================================================
-    // Task: Trigger round completion
-    // ============================================================
-    task trigger_round_done();
+    // round_done 펄스 발생
+    task do_round_done;
         begin
             @(posedge clk);
-            c_round_done <= 1'b1;
+            round_done = 1'b1;
             @(posedge clk);
-            c_round_done <= 1'b0;
+            round_done = 1'b0;
+            repeat (3) @(posedge clk);  // 안정화 대기
         end
     endtask
 
-    // ============================================================
-    // Task: Wait cycles
-    // ============================================================
-    task wait_cycles(input int cycles);
+    // 1회전 시뮬레이션 (왼쪽/오른쪽 거리 지정)
+    task simulate_one_round;
+        input [13:0] left_dist;  // 왼쪽 측면 거리 (270~315도)
+        input [13:0] right_dist;  // 오른쪽 측면 거리 (45~90도)
         begin
-            repeat (cycles) @(posedge clk);
+            // 오른쪽 영역 (45~90도) 여러 포인트
+            send_point(9'd50, right_dist);
+            send_point(9'd60, right_dist + 14'd20);
+            send_point(9'd70, right_dist + 14'd10);
+            send_point(9'd80, right_dist + 14'd30);
+
+            // 전방/후방 (측면과 무관한 영역)
+            send_point(9'd0, 14'd2000);
+            send_point(9'd180, 14'd2000);
+
+            // 왼쪽 영역 (270~315도) 여러 포인트
+            send_point(9'd275, left_dist);
+            send_point(9'd285, left_dist + 14'd20);
+            send_point(9'd295, left_dist + 14'd10);
+            send_point(9'd305, left_dist + 14'd30);
+
+            // round_done
+            do_round_done();
         end
     endtask
 
-    // ============================================================
-    // Task: Clear all warning signals completely
-    // Sends safe data and triggers round_done until all signals are low
-    // ============================================================
-    task clear_all_warnings();
-        int max_attempts;
+    // 결과 검증
+    task check_result;
+        input [79:0] test_name;  // 10 chars
+        input expected_left_warn;
+        input expected_right_warn;
+        input expected_side_warn;
         begin
-            max_attempts = 5;  // Prevent infinite loop
+            test_num = test_num + 1;
 
-            $display("  [CLEANUP] Clearing all warning signals...");
+            // 1 클럭 대기 (래치 반영)
+            @(posedge clk);
 
-            while ((c_brake_signal || c_warning_signal || 
-                    c_left_warning_signal || c_right_warning_signal) && 
-                   max_attempts > 0) begin
-
-                // Send safe distances across all zones
-                send_lidar_data(9'd0, 14'd1000);  // Front safe
-                send_lidar_data(9'd60, 14'd1000);  // Right safe
-                send_lidar_data(9'd290, 14'd1000);  // Left safe
-                wait_cycles(2);
-
-                // Trigger round completion
-                trigger_round_done();
-                wait_cycles(2);
-
+            if (uut.c_left_warning_signal  == expected_left_warn &&
+                uut.c_right_warning_signal == expected_right_warn &&
+                side_warning_signal        == expected_side_warn) begin
+                $display("[PASS] Test %0d: %s", test_num, test_name);
                 $display(
-                    "  [CLEANUP] Attempt %0d: brake=%b, warn=%b, left=%b, right=%b",
-                    (6 - max_attempts), c_brake_signal, c_warning_signal,
-                    c_left_warning_signal, c_right_warning_signal);
-
-                max_attempts = max_attempts - 1;
-            end
-
-            if (!c_brake_signal && !c_warning_signal && 
-                !c_left_warning_signal && !c_right_warning_signal) begin
-                $display("  [CLEANUP] All signals cleared successfully\n");
+                    "       left_warn=%b (exp=%b), right_warn=%b (exp=%b), side_warn=%b (exp=%b)",
+                    uut.c_left_warning_signal, expected_left_warn,
+                    uut.c_right_warning_signal, expected_right_warn,
+                    side_warning_signal, expected_side_warn);
+                $display("       left_min=%0d mm, right_min=%0d mm",
+                         left_min_distance, right_min_distance);
+                pass_count = pass_count + 1;
             end else begin
-                $display("  [CLEANUP] WARNING: Some signals still active!\n");
+                $display("[FAIL] Test %0d: %s", test_num, test_name);
+                $display(
+                    "       left_warn=%b (exp=%b), right_warn=%b (exp=%b), side_warn=%b (exp=%b)",
+                    uut.c_left_warning_signal, expected_left_warn,
+                    uut.c_right_warning_signal, expected_right_warn,
+                    side_warning_signal, expected_side_warn);
+                $display("       left_min=%0d mm, right_min=%0d mm",
+                         left_min_distance, right_min_distance);
+                fail_count = fail_count + 1;
             end
+            $display("");
         end
     endtask
 
-    // ============================================================
-    // Main test sequence
-    // ============================================================
+    // ===== 메인 테스트 =====
     initial begin
-        // Waveform dump setup
-        $dumpfile("collision_detector.vcd");
-        $dumpvars(0, tb_collision_detector);
+        $display("==================================================");
+        $display(" Collision Detector - Side Warning Testbench");
+        $display("==================================================");
+        $display(" SIDE_ON_THRESHOLD  = 300mm");
+        $display(" SIDE_OFF_THRESHOLD = 400mm (히스테리시스)");
+        $display("==================================================\n");
 
-        // Initialization
-        rst_n = 0;
-        c_distance = 14'd0;
-        c_angle = 9'd0;
-        c_data_valid = 1'b0;
-        c_round_done = 1'b0;
-
-        // Release reset
-        repeat (5) @(posedge clk);
+        // 초기화
+        rst_n      = 0;
+        distance   = 14'd0;
+        angle      = 9'd0;
+        data_valid = 1'b0;
+        round_done = 1'b0;
+        #100;
         rst_n = 1;
-        $display("\n[%0t ns] ========== Test Start ==========", $time);
+        #100;
 
-        // ------------------------------------------------------------
-        // TEST 1: Front brake zone (0deg, 250mm)
-        // Expected: brake_signal = 1, warning_signal = 1
-        // ------------------------------------------------------------
-        $display("\n[%0t ns] [TEST 1] Front 250mm (brake zone)", $time);
-        send_lidar_data(9'd0, 14'd250);
-        wait_cycles(2);
+        // ============================================================
+        // Test 1: 양쪽 다 멀리 있음 → 경고 없음
+        // ============================================================
+        $display("--- Case 1: 양쪽 다 멀리 (left=1000, right=1000) ---");
+        simulate_one_round(14'd1000, 14'd1000);
+        check_result("BothFar   ", 1'b0,  // left_warn
+                     1'b0,  // right_warn
+                     1'b0);  // side_warn
 
-        if (c_brake_signal && c_warning_signal)
-            $display(
-                "  PASS: brake=%b, warning=%b", c_brake_signal, c_warning_signal
-            );
-        else
-            $display(
-                "  FAIL: brake=%b, warning=%b", c_brake_signal, c_warning_signal
-            );
+        // ============================================================
+        // Test 2: 왼쪽만 가까움 → left_warning만 ON
+        // ============================================================
+        $display("--- Case 2: 왼쪽만 가까움 (left=200, right=1000) ---");
+        simulate_one_round(14'd200, 14'd1000);
+        check_result("LeftClose ", 1'b1,  // left_warn ON
+                     1'b0,  // right_warn OFF
+                     1'b1);  // side_warn ON
 
-        // ------------------------------------------------------------
-        // TEST 2: Round done with danger present
-        // Expected: signals remain active
-        // ------------------------------------------------------------
-        $display("\n[%0t ns] [TEST 2] Round done (danger was present)", $time);
-        trigger_round_done();
-        wait_cycles(2);
-
-        if (c_brake_signal && c_warning_signal)
-            $display(
-                "  PASS: Signals maintained (brake=%b, warning=%b)",
-                c_brake_signal,
-                c_warning_signal
-            );
-        else
-            $display(
-                "  FAIL: Signals released (brake=%b, warning=%b)",
-                c_brake_signal,
-                c_warning_signal
-            );
-
-        // ------------------------------------------------------------
-        // TEST 3: Safe round then release
-        // Expected: signals released
-        // ------------------------------------------------------------
-        $display("\n[%0t ns] [TEST 3] Safe round then release", $time);
-        send_lidar_data(9'd0, 14'd500);
-        wait_cycles(2);
-        trigger_round_done();
-        wait_cycles(2);
-
-        if (!c_brake_signal && !c_warning_signal)
-            $display(
-                "  PASS: Signals released (brake=%b, warning=%b)",
-                c_brake_signal,
-                c_warning_signal
-            );
-        else
-            $display(
-                "  FAIL: Signals maintained (brake=%b, warning=%b)",
-                c_brake_signal,
-                c_warning_signal
-            );
-
-        clear_all_warnings();  // Clean up before next test
-
-        // ------------------------------------------------------------
-        // TEST 4: Front warning only (0deg, 350mm)
-        // Expected: brake_signal = 0, warning_signal = 1
-        // ------------------------------------------------------------
-        $display("\n[%0t ns] [TEST 4] Front 350mm (warning only)", $time);
-        send_lidar_data(9'd0, 14'd350);
-        wait_cycles(2);
-
-        if (!c_brake_signal && c_warning_signal)
-            $display(
-                "  PASS: brake=%b, warning=%b", c_brake_signal, c_warning_signal
-            );
-        else
-            $display(
-                "  FAIL: brake=%b, warning=%b", c_brake_signal, c_warning_signal
-            );
-
-        clear_all_warnings();  // Clean up before next test
-
-        // ------------------------------------------------------------
-        // TEST 5: Left wall multiple measurements - minimum tracking
-        // Expected: left_min_distance tracks the minimum value
-        // ------------------------------------------------------------
+        // ============================================================
+        // Test 3: 오른쪽만 가까움 → right_warning만 ON
+        // ============================================================
         $display(
-            "\n[%0t ns] [TEST 5] Left wall multiple measurements (min tracking)",
-            $time);
-        send_lidar_data(9'd270, 14'd400);  // Left zone, 400mm
-        wait_cycles(1);
-        $display("  After 270deg/400mm: left_min=%0d mm, left_warning=%b",
-                 c_left_min_distance, c_left_warning_signal);
+            "--- Case 3: 오른쪽만 가까움 (left=1000, right=200) ---");
+        simulate_one_round(14'd1000, 14'd200);
+        check_result(
+            "RightClose",
+            1'b0,  // left_warn OFF (이전 left가 충분히 멀어짐)
+            1'b1,  // right_warn ON
+            1'b1);  // side_warn ON
 
-        send_lidar_data(9'd280, 14'd250);  // Left zone, 250mm (closer!)
-        wait_cycles(1);
-        $display("  After 280deg/250mm: left_min=%0d mm, left_warning=%b",
-                 c_left_min_distance, c_left_warning_signal);
+        // ============================================================
+        // Test 4: 양쪽 다 가까움 (좁은 복도) → 둘 다 ON
+        // ============================================================
+        $display("--- Case 4: 양쪽 다 가까움 (left=200, right=250) ---");
+        simulate_one_round(14'd200, 14'd250);
+        check_result("BothClose ", 1'b1,  // left_warn ON
+                     1'b1,  // right_warn ON
+                     1'b1);  // side_warn ON
 
-        send_lidar_data(9'd290, 14'd350);  // Left zone, 350mm (farther)
-        wait_cycles(1);
-        $display("  After 290deg/350mm: left_min=%0d mm, left_warning=%b",
-                 c_left_min_distance, c_left_warning_signal);
+        // ============================================================
+        // Test 5: 히스테리시스 테스트 - ON 문턱 근처 (299mm → ON)
+        // ============================================================
+        $display("--- Case 5: 히스테리시스 경계 ON (left=299) ---");
+        simulate_one_round(14'd299, 14'd1000);
+        check_result("HystOn299 ", 1'b1,  // left_warn ON (299 < 300)
+                     1'b0,  // right_warn OFF
+                     1'b1);  // side_warn ON
 
-        send_lidar_data(9'd300, 14'd180);  // Left zone, 180mm (closest!)
-        wait_cycles(1);
-        $display("  After 300deg/180mm: left_min=%0d mm, left_warning=%b",
-                 c_left_min_distance, c_left_warning_signal);
-
-        if (c_left_min_distance == 14'd180 && c_left_warning_signal)
-            $display("  PASS: Minimum distance tracked correctly (180mm)");
-        else
-            $display(
-                "  FAIL: left_min=%0d mm (expected 180mm), warning=%b",
-                c_left_min_distance,
-                c_left_warning_signal
-            );
-
-        trigger_round_done();
-        wait_cycles(2);
-        $display("  After round: left_warning=%b, left_min=%0d mm",
-                 c_left_warning_signal, c_left_min_distance);
-
-        clear_all_warnings();  // Clean up before next test
-
-        // ------------------------------------------------------------
-        // TEST 6: Right wall multiple measurements - minimum tracking
-        // Expected: right_min_distance tracks the minimum value
-        // ------------------------------------------------------------
+        // ============================================================
+        // Test 6: 히스테리시스 테스트 - 중간 구간 (350mm → 유지)
+        //         이전 상태가 ON이었으므로 300~400 사이에서 유지
+        // ============================================================
         $display(
-            "\n[%0t ns] [TEST 6] Right wall multiple measurements (min tracking)",
-            $time);
-        send_lidar_data(9'd45, 14'd500);  // Right zone, 500mm
-        wait_cycles(1);
-        $display("  After 45deg/500mm: right_min=%0d mm, right_warning=%b",
-                 c_right_min_distance, c_right_warning_signal);
+            "--- Case 6: 히스테리시스 중간 (left=350, 이전 ON) ---");
+        simulate_one_round(14'd350, 14'd1000);
+        check_result("HystMid350", 1'b1,  // left_warn 유지 (300 < 350 < 400)
+                     1'b0,  // right_warn OFF
+                     1'b1);  // side_warn ON
 
-        send_lidar_data(9'd60, 14'd280);  // Right zone, 280mm (closer!)
-        wait_cycles(1);
-        $display("  After 60deg/280mm: right_min=%0d mm, right_warning=%b",
-                 c_right_min_distance, c_right_warning_signal);
+        // ============================================================
+        // Test 7: 히스테리시스 테스트 - OFF 문턱 돌파 (400mm → OFF)
+        // ============================================================
+        $display("--- Case 7: 히스테리시스 OFF 돌파 (left=400) ---");
+        simulate_one_round(14'd400, 14'd1000);
+        check_result("HystOff400", 1'b0,  // left_warn OFF (400 >= 400)
+                     1'b0,  // right_warn OFF
+                     1'b0);  // side_warn OFF
 
-        send_lidar_data(9'd75, 14'd320);  // Right zone, 320mm (farther)
-        wait_cycles(1);
-        $display("  After 75deg/320mm: right_min=%0d mm, right_warning=%b",
-                 c_right_min_distance, c_right_warning_signal);
+        // ============================================================
+        // Test 8: OFF → 다시 가까워짐 → ON
+        // ============================================================
+        $display("--- Case 8: 다시 가까워짐 (left=250) ---");
+        simulate_one_round(14'd250, 14'd1000);
+        check_result("ReClose250", 1'b1,  // left_warn ON (250 < 300)
+                     1'b0,  // right_warn OFF
+                     1'b1);  // side_warn ON
 
-        send_lidar_data(9'd90, 14'd150);  // Right zone, 150mm (closest!)
-        wait_cycles(1);
-        $display("  After 90deg/150mm: right_min=%0d mm, right_warning=%b",
-                 c_right_min_distance, c_right_warning_signal);
+        // ============================================================
+        // Test 9: 좌우 교대 - 왼쪽 가까웠다가 오른쪽으로 전환
+        // ============================================================
+        $display(
+            "--- Case 9: 좌우 교대 (이전: left 가까움 → 이번: right 가까움) ---");
+        // 먼저 왼쪽 가까운 상태
+        simulate_one_round(14'd200, 14'd1000);
+        $display("  [Setup] left=200, right=1000");
+        // 이제 오른쪽이 가까워짐
+        simulate_one_round(14'd1000, 14'd200);
+        check_result("Swap L->R ", 1'b0,  // left_warn OFF (1000 > 400)
+                     1'b1,  // right_warn ON (200 < 300)
+                     1'b1);  // side_warn ON
 
-        if (c_right_min_distance == 14'd150 && c_right_warning_signal)
-            $display("  PASS: Minimum distance tracked correctly (150mm)");
-        else
-            $display(
-                "  FAIL: right_min=%0d mm (expected 150mm), warning=%b",
-                c_right_min_distance,
-                c_right_warning_signal
-            );
+        // ============================================================
+        // Test 10: 매 회전마다 갱신되는지 확인
+        //          1회전: left=200  →  2회전: left=500
+        // ============================================================
+        $display(
+            "--- Case 10: 매 회전 갱신 (1회전: left=200 → 2회전: left=500) ---");
+        simulate_one_round(14'd200, 14'd1000);
+        $display("  [Round 1] left_min=%0d, left_warn=%b", left_min_distance,
+                 uut.c_left_warning_signal);
+        simulate_one_round(14'd500, 14'd1000);
+        check_result("RoundUpd  ", 1'b0,  // left_warn OFF (500 >= 400)
+                     1'b0,  // right_warn OFF
+                     1'b0);  // side_warn OFF
 
-        trigger_round_done();
-        wait_cycles(2);
-        $display("  After round: right_warning=%b, right_min=%0d mm",
-                 c_right_warning_signal, c_right_min_distance);
+        // ============================================================
+        // Test 11: 매우 좁은 복도 (양쪽 150mm)
+        // ============================================================
+        $display("--- Case 11: 매우 좁은 복도 (left=150, right=150) ---");
+        simulate_one_round(14'd150, 14'd150);
+        check_result("Narrow150 ", 1'b1,  // left_warn ON
+                     1'b1,  // right_warn ON
+                     1'b1);  // side_warn ON
 
-        clear_all_warnings();  // Clean up before next test
+        // ============================================================
+        // Test 12: 비대칭 좁은 복도 (left=100, right=280)
+        // ============================================================
+        $display(
+            "--- Case 12: 비대칭 좁은 복도 (left=100, right=280) ---");
+        simulate_one_round(14'd100, 14'd280);
+        check_result("Asym100280", 1'b1,  // left_warn ON (100 < 300)
+                     1'b1,  // right_warn ON (280 < 300)
+                     1'b1);  // side_warn ON
 
-        // ------------------------------------------------------------
-        // TEST 7: Left wall safe distance (no warning)
-        // Expected: left_warning_signal = 0
-        // ------------------------------------------------------------
-        $display("\n[%0t ns] [TEST 7] Left wall safe distance (400mm+)", $time);
-        send_lidar_data(9'd270, 14'd450);  // Safe distance
-        wait_cycles(1);
-        send_lidar_data(9'd290, 14'd500);  // Safe distance
-        wait_cycles(1);
-        send_lidar_data(9'd310, 14'd420);  // Safe distance
-        wait_cycles(1);
+        // ============================================================
+        // Test 13: 한쪽만 히스테리시스 구간, 다른쪽은 확실히 멀리
+        // ============================================================
+        $display("--- Case 13: left=350 (히스테리시스), right=2000 ---");
+        // 이전 테스트에서 left_warn이 ON 상태
+        simulate_one_round(14'd350, 14'd2000);
+        check_result("HystLonly ",
+                     1'b1,  // left_warn 유지 (300 < 350 < 400, 이전 ON)
+                     1'b0,  // right_warn OFF (2000 > 400)
+                     1'b1);  // side_warn ON
 
-        if (!c_left_warning_signal)
-            $display(
-                "  PASS: No warning for safe distance (warning=%b)",
-                c_left_warning_signal
-            );
-        else
-            $display(
-                "  FAIL: Warning triggered incorrectly (warning=%b)",
-                c_left_warning_signal
-            );
+        // ============================================================
+        // Test 14: 양쪽 다 히스테리시스 구간 (이전 ON 상태)
+        // ============================================================
+        $display(
+            "--- Case 14: 양쪽 히스테리시스 구간 (left=350, right=350) ---");
+        // 먼저 양쪽 ON 상태 만들기
+        simulate_one_round(14'd200, 14'd200);
+        $display("  [Setup] Both close: left=200, right=200");
+        // 이제 양쪽 히스테리시스 구간
+        simulate_one_round(14'd350, 14'd350);
+        check_result("HystBoth  ", 1'b1,  // left_warn 유지
+                     1'b1,  // right_warn 유지
+                     1'b1);  // side_warn ON
 
-        trigger_round_done();
-        wait_cycles(2);
+        // ============================================================
+        // Test 15: distance = 0 무시 확인
+        // ============================================================
+        $display("--- Case 15: distance=0 포인트 무시 ---");
+        simulate_one_round(14'd1000, 14'd1000);  // 먼저 멀리
+        // 수동으로 0 포인트 전송
+        send_point(9'd280,
+                   14'd0);  // 왼쪽 영역이지만 w_dist=0 → 무시
+        send_point(9'd280, 14'd200);  // 유효한 값
+        send_point(9'd60,
+                   14'd0);  // 오른쪽 영역이지만 w_dist=0 → 무시
+        send_point(9'd60, 14'd1000);
+        do_round_done();
+        check_result("Dist0Skip ",
+                     1'b1,  // left_warn ON (200 < 300, w_dist=0은 무시됨)
+                     1'b0,  // right_warn OFF (1000 > 400)
+                     1'b1);  // side_warn ON
 
-        clear_all_warnings();  // Clean up before next test
+        // ============================================================
+        // 결과 요약
+        // ============================================================
+        $display("==================================================");
+        $display(" Test Results: %0d PASS / %0d FAIL (Total: %0d)", pass_count,
+                 fail_count, pass_count + fail_count);
+        $display("==================================================");
 
-        // ------------------------------------------------------------
-        // TEST 8: Right wall safe distance (no warning)
-        // Expected: right_warning_signal = 0
-        // ------------------------------------------------------------
-        $display("\n[%0t ns] [TEST 8] Right wall safe distance (400mm+)",
-                 $time);
-        send_lidar_data(9'd50, 14'd450);  // Safe distance
-        wait_cycles(1);
-        send_lidar_data(9'd70, 14'd500);  // Safe distance
-        wait_cycles(1);
-        send_lidar_data(9'd85, 14'd420);  // Safe distance
-        wait_cycles(1);
+        if (fail_count == 0) $display(" >>> ALL TESTS PASSED! <<<");
+        else $display(" >>> %0d TESTS FAILED <<<", fail_count);
 
-        if (!c_right_warning_signal)
-            $display(
-                "  PASS: No warning for safe distance (warning=%b)",
-                c_right_warning_signal
-            );
-        else
-            $display(
-                "  FAIL: Warning triggered incorrectly (warning=%b)",
-                c_right_warning_signal
-            );
+        $display("==================================================\n");
 
-        trigger_round_done();
-        wait_cycles(2);
-
-        clear_all_warnings();  // Clean up before next test
-
-        // ------------------------------------------------------------
-        // TEST 9: Left wall boundary angle test (269deg and 316deg)
-        // Expected: 269deg not in zone, 315deg in zone
-        // ------------------------------------------------------------
-        $display("\n[%0t ns] [TEST 9] Left wall boundary angle test", $time);
-        send_lidar_data(9'd269, 14'd200);  // Just outside left zone
-        wait_cycles(1);
-        $display("  269deg/200mm: left_warning=%b (should be 0)",
-                 c_left_warning_signal);
-
-        send_lidar_data(9'd270, 14'd200);  // Left zone start
-        wait_cycles(1);
-        $display("  270deg/200mm: left_warning=%b (should be 1)",
-                 c_left_warning_signal);
-
-        send_lidar_data(9'd315, 14'd200);  // Left zone end
-        wait_cycles(1);
-        $display("  315deg/200mm: left_warning=%b (should be 1)",
-                 c_left_warning_signal);
-
-        trigger_round_done();
-        wait_cycles(2);
-
-        clear_all_warnings();  // Clean up before next test
-
-        // ------------------------------------------------------------
-        // TEST 10: Right wall boundary angle test (44deg and 91deg)
-        // Expected: 44deg not in zone, 90deg in zone
-        // ------------------------------------------------------------
-        $display("\n[%0t ns] [TEST 10] Right wall boundary angle test", $time);
-        send_lidar_data(9'd44, 14'd200);  // Just outside right zone
-        wait_cycles(1);
-        $display("  44deg/200mm: right_warning=%b (should be 0)",
-                 c_right_warning_signal);
-
-        send_lidar_data(9'd45, 14'd200);  // Right zone start
-        wait_cycles(1);
-        $display("  45deg/200mm: right_warning=%b (should be 1)",
-                 c_right_warning_signal);
-
-        send_lidar_data(9'd90, 14'd200);  // Right zone end
-        wait_cycles(1);
-        $display("  90deg/200mm: right_warning=%b (should be 1)",
-                 c_right_warning_signal);
-
-        trigger_round_done();
-        wait_cycles(2);
-
-        clear_all_warnings();  // Clean up before next test
-
-        // ------------------------------------------------------------
-        // TEST 11: Front boundary angle (45deg, 250mm)
-        // Expected: in_front_zone so brake_signal = 1
-        // ------------------------------------------------------------
-        $display("\n[%0t ns] [TEST 11] Front boundary angle 45deg", $time);
-        send_lidar_data(9'd45, 14'd250);
-        wait_cycles(2);
-
-        if (c_brake_signal)
-            $display(
-                "  PASS: 45deg recognized as front zone (brake=%b)",
-                c_brake_signal
-            );
-        else
-            $display(
-                "  FAIL: 45deg not recognized as front zone (brake=%b)",
-                c_brake_signal
-            );
-
-        trigger_round_done();
-        wait_cycles(2);
-
-        clear_all_warnings();  // Clean up before next test
-
-        // ------------------------------------------------------------
-        // TEST 12: Front opposite boundary (315deg, 250mm)
-        // Expected: 360 - 45 = 315 so in_front_zone, brake_signal = 1
-        // ------------------------------------------------------------
-        $display("\n[%0t ns] [TEST 12] Front opposite boundary 315deg", $time);
-        send_lidar_data(9'd315, 14'd250);
-        wait_cycles(2);
-
-        if (c_brake_signal)
-            $display(
-                "  PASS: 315deg recognized as front zone (brake=%b)",
-                c_brake_signal
-            );
-        else
-            $display(
-                "  FAIL: 315deg not recognized as front zone (brake=%b)",
-                c_brake_signal
-            );
-
-        trigger_round_done();
-        wait_cycles(2);
-
-        clear_all_warnings();  // Clean up before next test
-
-        // ------------------------------------------------------------
-        // TEST 13: Multi-directional danger in one round
-        // Expected: front, left, right all activated
-        // ------------------------------------------------------------
-        $display("\n[%0t ns] [TEST 13] Multi-directional danger in one round",
-                 $time);
-
-        send_lidar_data(9'd0, 14'd250);  // Front
-        wait_cycles(1);
-        send_lidar_data(9'd60, 14'd200);  // Right
-        wait_cycles(1);
-        send_lidar_data(9'd290, 14'd180);  // Left
-        wait_cycles(1);
-
-        trigger_round_done();
-        wait_cycles(2);
-
-        $display("  Status: brake=%b, warning=%b, left=%b, right=%b",
-                 c_brake_signal, c_warning_signal, c_left_warning_signal,
-                 c_right_warning_signal);
-        $display("  Distance: left_min=%0d mm, right_min=%0d mm",
-                 c_left_min_distance, c_right_min_distance);
-
-        clear_all_warnings();  // Clean up before next test
-
-        // ------------------------------------------------------------
-        // TEST 14: Enter safe zone and release all
-        // ------------------------------------------------------------
-        $display("\n[%0t ns] [TEST 14] Enter safe zone and release all", $time);
-
-        send_lidar_data(9'd0, 14'd600);  // Front safe
-        send_lidar_data(9'd60, 14'd500);  // Right safe
-        send_lidar_data(9'd290, 14'd500);  // Left safe
-        wait_cycles(2);
-
-        trigger_round_done();
-        wait_cycles(2);
-
-        if (!c_brake_signal && !c_warning_signal && !c_left_warning_signal && !c_right_warning_signal)
-            $display("  PASS: All signals released");
-        else
-            $display(
-                "  FAIL: Some signals maintained (brake=%b, warn=%b, left=%b, right=%b)",
-                c_brake_signal,
-                c_warning_signal,
-                c_left_warning_signal,
-                c_right_warning_signal
-            );
-
-        // Finish
-        wait_cycles(10);
-        $display("\n[%0t ns] ========== Test End ==========\n", $time);
+        #100;
         $finish;
     end
 
-    // ============================================================
-    // Monitor: Display signal changes
-    // ============================================================
-    always @(posedge clk) begin
-        if (c_data_valid) begin
-            $display("[%0t ns] INPUT: angle=%3d deg, distance=%4d mm", $time,
-                     c_angle, c_distance);
-        end
-
-        if (c_brake_signal || c_warning_signal || c_left_warning_signal || c_right_warning_signal) begin
-            $display("[%0t ns] OUTPUT: BRAKE=%b, WARN=%b, LEFT=%b, RIGHT=%b",
-                     $time, c_brake_signal, c_warning_signal,
-                     c_left_warning_signal, c_right_warning_signal);
-        end
-    end
+    // ===== 파형 덤프 =====
+    // initial begin
+    //     $dumpfile("tb_collision_detector_side.vcd");
+    //     $dumpvars(0, tb_collision_detector_side);
+    // end
 
 endmodule

@@ -86,16 +86,19 @@ module collision_detector #(
             end
 
             // 2. 1회전 완료 시 강제 해제 (안전 보장)
-            if (round_done) begin
-                brake_signal   <= 1'b0;
-                warning_signal <= 1'b0;
-            end
+            // if (round_done) begin
+            //     brake_signal   <= 1'b0;
+            //     warning_signal <= 1'b0;
+            // end
         end
     end
 
     // ===== 측면 거리 수집 및 위험 판단 =====
     reg [13:0] c_left_min_distance, c_right_min_distance;
     reg [13:0] n_left_min_distance, n_right_min_distance;
+
+    reg [13:0] c_left_min_reg, c_right_min_reg;
+    reg [13:0] n_left_min_reg, n_right_min_reg;
 
     reg c_left_warning_signal, n_left_warning_signal;
     reg c_right_warning_signal, n_right_warning_signal;
@@ -106,11 +109,15 @@ module collision_detector #(
             c_right_min_distance   <= 14'h3FFF;
             c_left_warning_signal  <= 0;
             c_right_warning_signal <= 0;
+            c_left_min_reg         <= 0;
+            c_right_min_reg        <= 0;
         end else begin
             c_left_min_distance    <= n_left_min_distance;
             c_right_min_distance   <= n_right_min_distance;
             c_left_warning_signal  <= n_left_warning_signal;
             c_right_warning_signal <= n_right_warning_signal;
+            c_left_min_reg         <= n_left_min_reg;
+            c_right_min_reg        <= n_right_min_reg;
         end
     end
 
@@ -123,6 +130,8 @@ module collision_detector #(
         n_right_min_distance   = c_right_min_distance;
         n_left_warning_signal  = c_left_warning_signal;
         n_right_warning_signal = c_right_warning_signal;
+        n_left_min_reg         = c_left_min_reg;
+        n_right_min_reg        = c_right_min_reg;
 
         if (data_valid) begin
             if (left_zone && distance != 14'd0) begin
@@ -137,31 +146,30 @@ module collision_detector #(
         end
 
         // 측면 경고 - 히스테리시스 적용
-        if (c_left_min_distance < SIDE_ON_THRESHOLD && 
-            c_right_min_distance < c_left_min_distance) begin
-            n_right_warning_signal = 1'b1;
-        end else if (c_left_min_distance >= SIDE_OFF_THRESHOLD && c_right_warning_signal) begin
-            n_right_warning_signal = 1'b0;
-        end
-
-        if (c_right_min_distance < SIDE_ON_THRESHOLD && 
-            c_left_min_distance < c_right_min_distance) begin
+        if (c_left_min_reg < SIDE_ON_THRESHOLD) begin
             n_left_warning_signal = 1'b1;
-        end else if (c_right_min_distance >= SIDE_OFF_THRESHOLD && c_left_warning_signal) begin
+        end else if (c_left_min_reg >= SIDE_OFF_THRESHOLD && c_left_warning_signal) begin
             n_left_warning_signal = 1'b0;
         end
 
-        // 1회전 완료 시 리셋
+        if (n_right_min_reg < SIDE_ON_THRESHOLD) begin
+            n_right_warning_signal = 1'b1;
+        end else if (c_right_min_reg >= SIDE_OFF_THRESHOLD && c_right_warning_signal) begin
+            n_right_warning_signal = 1'b0;
+        end
+
+
         if (round_done) begin
+            n_left_min_reg = c_left_min_distance;
+            n_right_min_reg = c_right_min_distance;
             n_left_min_distance    = 14'h3FFF;
             n_right_min_distance   = 14'h3FFF;
-            n_right_warning_signal = 1'b0;
-            n_left_warning_signal  = 1'b0;
         end
+
     end
 
     assign side_warning_signal = c_left_warning_signal || c_right_warning_signal;
-    assign left_min_distance = c_left_min_distance;
-    assign right_min_distance = c_right_min_distance;
+    assign left_min_distance = c_left_min_reg;
+    assign right_min_distance = c_right_min_reg;
 
 endmodule

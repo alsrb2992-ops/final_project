@@ -19,7 +19,7 @@ module brake_output #(
     input wire       brake_signal,
     input wire       warning_signal,
     input wire       side_warning_signal,
-    input wire [3:0] direction_degree,
+    input wire [2:0] direction_degree,
 
     output reg       brake_gpio,                // 모터 드라이버로
     output reg       warning_led,               // 경고 LED
@@ -95,9 +95,7 @@ module brake_output #(
         if (!rst_n) begin
             direction_degree_gpio <= `CENTER;
         end else begin
-            if (round_done) begin
-                direction_degree_gpio <= direction_degree;
-            end
+            direction_degree_gpio <= direction_degree;
         end
     end
 
