@@ -25,17 +25,16 @@ module top #(
     output wire       wifi_tx,
     output wire       pwm_servo,
     output wire       pwm_dc,
-    output wire [1:0] dir_dc,
-    output wire       brake_gpio,
-    output wire       warning_led,
-    output wire       side_warning_signal_gpio
+    output wire [1:0] dir_dc
 );
 
 
     wire [2:0] direction_degree_gpio;
-    wire rst_n = ~reset_n; // 리셋 신호는 active low이므로 반전하여 사용
+    wire rst_n = reset_n; // 리셋 신호는 active low이므로 반전하여 사용
     wire clk = sysclk;
-
+    wire brake_gpio;
+    wire warning_led;
+    
     lidar_top #(
         .CLK_FREQ             (CLK_FREQ),
         .BAUD_RATE            (BAUD_RATE),
