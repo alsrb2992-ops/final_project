@@ -52,7 +52,7 @@ CLK_FREQ
                 dir_set = 2'b00;
             end
             `RC_FORWARD: begin  // 직진
-                period_set = forward_back_cnt;
+                period_set = turn_cnt;
                 dir_set = 2'b01;
             end
             `RC_BACKWARD: begin  // 후진

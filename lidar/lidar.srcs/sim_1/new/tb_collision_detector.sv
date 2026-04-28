@@ -28,7 +28,7 @@ module tb_collision_detector ();
         .WARN_DIST_MM         (14'd600),
         .SIDE_DIST_MM         (14'd300),
         .HYSTERESIS_MM        (14'd100)
-    ) uut (
+    ) dut (
         .clk                (clk),
         .rst_n              (rst_n),
         .distance           (distance),
@@ -44,7 +44,7 @@ module tb_collision_detector ();
 
     // ===== 클럭 생성 (125MHz) =====
     initial clk = 0;
-    always #4 clk = ~clk;  // 8ns = 125MHz
+    always #4 clk = ~clk;
 
     // ===== 테스트 결과 카운터 =====
     integer pass_count = 0;
@@ -75,16 +75,16 @@ module tb_collision_detector ();
             round_done = 1'b1;
             @(posedge clk);
             round_done = 1'b0;
-            repeat (3) @(posedge clk);  // 안정화 대기
+            repeat (3) @(posedge clk);
         end
     endtask
 
     // 1회전 시뮬레이션 (왼쪽/오른쪽 거리 지정)
     task simulate_one_round;
-        input [13:0] left_dist;  // 왼쪽 측면 거리 (270~315도)
-        input [13:0] right_dist;  // 오른쪽 측면 거리 (45~90도)
+        input [13:0] left_dist;
+        input [13:0] right_dist;
         begin
-            // 오른쪽 영역 (45~90도) 여러 포인트
+            // 오른쪽 영역 (45~90도)
             send_point(9'd50, right_dist);
             send_point(9'd60, right_dist + 14'd20);
             send_point(9'd70, right_dist + 14'd10);
@@ -94,7 +94,7 @@ module tb_collision_detector ();
             send_point(9'd0, 14'd2000);
             send_point(9'd180, 14'd2000);
 
-            // 왼쪽 영역 (270~315도) 여러 포인트
+            // 왼쪽 영역 (270~315도)
             send_point(9'd275, left_dist);
             send_point(9'd285, left_dist + 14'd20);
             send_point(9'd295, left_dist + 14'd10);
@@ -105,26 +105,25 @@ module tb_collision_detector ();
         end
     endtask
 
-    // 결과 검증
+    // 결과 검증 (FIX: uut → dut)
     task check_result;
-        input [79:0] test_name;  // 10 chars
+        input [79:0] test_name;
         input expected_left_warn;
         input expected_right_warn;
         input expected_side_warn;
         begin
             test_num = test_num + 1;
 
-            // 1 클럭 대기 (래치 반영)
             @(posedge clk);
 
-            if (uut.c_left_warning_signal  == expected_left_warn &&
-                uut.c_right_warning_signal == expected_right_warn &&
+            if (dut.c_left_warning_signal  == expected_left_warn &&
+                dut.c_right_warning_signal == expected_right_warn &&
                 side_warning_signal        == expected_side_warn) begin
                 $display("[PASS] Test %0d: %s", test_num, test_name);
                 $display(
                     "       left_warn=%b (exp=%b), right_warn=%b (exp=%b), side_warn=%b (exp=%b)",
-                    uut.c_left_warning_signal, expected_left_warn,
-                    uut.c_right_warning_signal, expected_right_warn,
+                    dut.c_left_warning_signal, expected_left_warn,
+                    dut.c_right_warning_signal, expected_right_warn,
                     side_warning_signal, expected_side_warn);
                 $display("       left_min=%0d mm, right_min=%0d mm",
                          left_min_distance, right_min_distance);
@@ -133,8 +132,8 @@ module tb_collision_detector ();
                 $display("[FAIL] Test %0d: %s", test_num, test_name);
                 $display(
                     "       left_warn=%b (exp=%b), right_warn=%b (exp=%b), side_warn=%b (exp=%b)",
-                    uut.c_left_warning_signal, expected_left_warn,
-                    uut.c_right_warning_signal, expected_right_warn,
+                    dut.c_left_warning_signal, expected_left_warn,
+                    dut.c_right_warning_signal, expected_right_warn,
                     side_warning_signal, expected_side_warn);
                 $display("       left_min=%0d mm, right_min=%0d mm",
                          left_min_distance, right_min_distance);
@@ -187,11 +186,9 @@ module tb_collision_detector ();
         $display(
             "--- Case 3: 오른쪽만 가까움 (left=1000, right=200) ---");
         simulate_one_round(14'd1000, 14'd200);
-        check_result(
-            "RightClose",
-            1'b0,  // left_warn OFF (이전 left가 충분히 멀어짐)
-            1'b1,  // right_warn ON
-            1'b1);  // side_warn ON
+        check_result("RightClose", 1'b0,  // left_warn OFF
+                     1'b1,  // right_warn ON
+                     1'b1);  // side_warn ON
 
         // ============================================================
         // Test 4: 양쪽 다 가까움 (좁은 복도) → 둘 다 ON
@@ -203,7 +200,7 @@ module tb_collision_detector ();
                      1'b1);  // side_warn ON
 
         // ============================================================
-        // Test 5: 히스테리시스 테스트 - ON 문턱 근처 (299mm → ON)
+        // Test 5: 히스테리시스 경계 ON (299mm < 300mm → ON)
         // ============================================================
         $display("--- Case 5: 히스테리시스 경계 ON (left=299) ---");
         simulate_one_round(14'd299, 14'd1000);
@@ -212,8 +209,7 @@ module tb_collision_detector ();
                      1'b1);  // side_warn ON
 
         // ============================================================
-        // Test 6: 히스테리시스 테스트 - 중간 구간 (350mm → 유지)
-        //         이전 상태가 ON이었으므로 300~400 사이에서 유지
+        // Test 6: 히스테리시스 중간 (350mm, 이전 ON → 유지)
         // ============================================================
         $display(
             "--- Case 6: 히스테리시스 중간 (left=350, 이전 ON) ---");
@@ -223,7 +219,7 @@ module tb_collision_detector ();
                      1'b1);  // side_warn ON
 
         // ============================================================
-        // Test 7: 히스테리시스 테스트 - OFF 문턱 돌파 (400mm → OFF)
+        // Test 7: 히스테리시스 OFF 돌파 (400mm >= 400mm → OFF)
         // ============================================================
         $display("--- Case 7: 히스테리시스 OFF 돌파 (left=400) ---");
         simulate_one_round(14'd400, 14'd1000);
@@ -241,28 +237,25 @@ module tb_collision_detector ();
                      1'b1);  // side_warn ON
 
         // ============================================================
-        // Test 9: 좌우 교대 - 왼쪽 가까웠다가 오른쪽으로 전환
+        // Test 9: 좌우 교대 전환
         // ============================================================
         $display(
-            "--- Case 9: 좌우 교대 (이전: left 가까움 → 이번: right 가까움) ---");
-        // 먼저 왼쪽 가까운 상태
+            "--- Case 9: 좌우 교대 (left 가까움 → right 가까움) ---");
         simulate_one_round(14'd200, 14'd1000);
         $display("  [Setup] left=200, right=1000");
-        // 이제 오른쪽이 가까워짐
         simulate_one_round(14'd1000, 14'd200);
-        check_result("Swap L->R ", 1'b0,  // left_warn OFF (1000 > 400)
+        check_result("Swap L->R ", 1'b0,  // left_warn OFF (1000 >= 400)
                      1'b1,  // right_warn ON (200 < 300)
                      1'b1);  // side_warn ON
 
         // ============================================================
-        // Test 10: 매 회전마다 갱신되는지 확인
-        //          1회전: left=200  →  2회전: left=500
+        // Test 10: 매 회전 갱신 확인 (left: 200 → 500)
         // ============================================================
         $display(
             "--- Case 10: 매 회전 갱신 (1회전: left=200 → 2회전: left=500) ---");
         simulate_one_round(14'd200, 14'd1000);
         $display("  [Round 1] left_min=%0d, left_warn=%b", left_min_distance,
-                 uut.c_left_warning_signal);
+                 dut.c_left_warning_signal);
         simulate_one_round(14'd500, 14'd1000);
         check_result("RoundUpd  ", 1'b0,  // left_warn OFF (500 >= 400)
                      1'b0,  // right_warn OFF
@@ -288,46 +281,40 @@ module tb_collision_detector ();
                      1'b1);  // side_warn ON
 
         // ============================================================
-        // Test 13: 한쪽만 히스테리시스 구간, 다른쪽은 확실히 멀리
+        // Test 13: 한쪽만 히스테리시스, 다른쪽은 멀리
         // ============================================================
-        $display("--- Case 13: left=350 (히스테리시스), right=2000 ---");
-        // 이전 테스트에서 left_warn이 ON 상태
+        $display(
+            "--- Case 13: left=350 (히스테리시스 유지), right=2000 ---");
         simulate_one_round(14'd350, 14'd2000);
         check_result("HystLonly ",
                      1'b1,  // left_warn 유지 (300 < 350 < 400, 이전 ON)
-                     1'b0,  // right_warn OFF (2000 > 400)
+                     1'b0,  // right_warn OFF (2000 >= 400)
                      1'b1);  // side_warn ON
 
         // ============================================================
-        // Test 14: 양쪽 다 히스테리시스 구간 (이전 ON 상태)
+        // Test 14: 양쪽 히스테리시스 구간 (이전 ON)
         // ============================================================
         $display(
-            "--- Case 14: 양쪽 히스테리시스 구간 (left=350, right=350) ---");
-        // 먼저 양쪽 ON 상태 만들기
+            "--- Case 14: 양쪽 히스테리시스 (left=350, right=350) ---");
         simulate_one_round(14'd200, 14'd200);
         $display("  [Setup] Both close: left=200, right=200");
-        // 이제 양쪽 히스테리시스 구간
         simulate_one_round(14'd350, 14'd350);
         check_result("HystBoth  ", 1'b1,  // left_warn 유지
                      1'b1,  // right_warn 유지
                      1'b1);  // side_warn ON
 
         // ============================================================
-        // Test 15: distance = 0 무시 확인
+        // Test 15: distance=0 무시 확인
         // ============================================================
         $display("--- Case 15: distance=0 포인트 무시 ---");
-        simulate_one_round(14'd1000, 14'd1000);  // 먼저 멀리
-        // 수동으로 0 포인트 전송
-        send_point(9'd280,
-                   14'd0);  // 왼쪽 영역이지만 w_dist=0 → 무시
+        simulate_one_round(14'd1000, 14'd1000);
+        send_point(9'd280, 14'd0);  // 왼쪽이지만 dist=0 → 무시
         send_point(9'd280, 14'd200);  // 유효한 값
-        send_point(9'd60,
-                   14'd0);  // 오른쪽 영역이지만 w_dist=0 → 무시
+        send_point(9'd60, 14'd0);  // 오른쪽이지만 dist=0 → 무시
         send_point(9'd60, 14'd1000);
         do_round_done();
-        check_result("Dist0Skip ",
-                     1'b1,  // left_warn ON (200 < 300, w_dist=0은 무시됨)
-                     1'b0,  // right_warn OFF (1000 > 400)
+        check_result("Dist0Skip ", 1'b1,  // left_warn ON (200 < 300)
+                     1'b0,  // right_warn OFF (1000 >= 400)
                      1'b1);  // side_warn ON
 
         // ============================================================
@@ -346,11 +333,5 @@ module tb_collision_detector ();
         #100;
         $finish;
     end
-
-    // ===== 파형 덤프 =====
-    // initial begin
-    //     $dumpfile("tb_collision_detector_side.vcd");
-    //     $dumpvars(0, tb_collision_detector_side);
-    // end
 
 endmodule
