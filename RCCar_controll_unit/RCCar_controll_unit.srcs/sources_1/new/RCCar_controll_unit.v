@@ -2,7 +2,7 @@
 
 module RCCar_controll_unit #(
     parameter CLK_FREQ = 125_000_000,
-    parameter MAX_CHANGE_PER_CYCLE = CLK_FREQ * 20 / 1000 / 8, // 20ms마다 최대 변화량
+    parameter MAX_CHANGE = 8,  // 20ms마다 최대 변화량
     parameter MAX_DECEL_PER_CYCLE = 1000
 ) (
     input  wire       clk,
@@ -42,8 +42,8 @@ module RCCar_controll_unit #(
     );
 
     servo_motor_controller #(
-        .CLK_FREQ(CLK_FREQ),
-        .MAX_CHANGE_PER_CYCLE(MAX_CHANGE_PER_CYCLE)
+        .CLK_FREQ  (CLK_FREQ),
+        .MAX_CHANGE(MAX_CHANGE)
     ) U_SERVO_MOTOR_CONTROLLER (
         .clk(clk),
         .reset_n(reset_n),

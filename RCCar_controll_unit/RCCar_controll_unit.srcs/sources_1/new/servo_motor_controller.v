@@ -3,7 +3,7 @@
 
 module servo_motor_controller #(
     parameter CLK_FREQ = 125_000_000,
-    parameter MAX_CHANGE_PER_CYCLE = 125000000 * 20 / 1000 / 8 // 20ms마다 최대 변화량
+    parameter MAX_CHANGE = 8  // 20ms마다 최대 변화량
 ) (
     input clk,
     input reset_n,
@@ -13,9 +13,12 @@ module servo_motor_controller #(
 
     // 1.5ms 가 중간
 
+
     reg [ $clog2(CLK_FREQ)-1:0] current_period;
     reg [$clog2(125000000)-1:0] count;
     reg [$clog2(125000000)-1:0] period_set;
+
+    localparam MAX_CHANGE_PER_CYCLE = CLK_FREQ * 20 / 1000 / MAX_CHANGE;
 
     localparam pwm_period = 50;  // Hz  
     localparam center_ms = 1.5;  // ms     

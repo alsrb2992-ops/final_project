@@ -17,11 +17,13 @@ module lidar_top #(
     parameter LEFT_END_ANGLE_DEG    = 9'd315,
     parameter BRAKE_DIST_MM         = 14'd300,
     parameter WARN_DIST_MM          = 14'd600,
-    parameter HYSTERESIS_MM         = 14'd100,      // 히스테리시스
+    parameter HYSTERESIS_MM         = 14'd100,
     parameter HOLD_MS               = 32'd200,
     parameter SIDE_HOLD_MS          = 32'd100,
     parameter TURN_THRESHOLD_MM     = 14'd800,
-    parameter BIG_TURN_DIFF_MM      = 14'd100
+    parameter BIG_TURN_DIFF_MM      = 14'd500,
+    parameter SMALL_TURN_DIFF_MM    = 14'd200,
+    parameter DIR_CHANGE_FREQUENCY  = 2_500_000
 ) (
     input  wire       clk,
     input  wire       rst_n,
@@ -249,9 +251,14 @@ module lidar_top #(
 
     // ===== Left/Right Comparator =====
     left_right_comparator #(
+        .CLK_FREQ(CLK_FREQ),
+        .DIR_CHANGE_FREQUENCY(DIR_CHANGE_FREQUENCY),
         .TURN_THRESHOLD_MM(TURN_THRESHOLD_MM),
-        .BIG_TURN_DIFF_MM (BIG_TURN_DIFF_MM)
+        .BIG_TURN_DIFF_MM(BIG_TURN_DIFF_MM),
+        .SMALL_TURN_DIFF_MM(SMALL_TURN_DIFF_MM)
     ) u_left_right_comparator (
+        .clk               (clk),
+        .rst_n             (rst_n),
         .left_min_distance (left_min_distance),
         .right_min_distance(right_min_distance),
         .warning_signal    (warning_signal),
