@@ -92,40 +92,6 @@ module lidar_top #(
         .valid(uart_valid)
     );
 
-    // ===== FIFO (WiFi 전송용) =====
-    // top_fifo U_fifo_rx (
-    //     .clk(clk),
-    //     .reset(rst_n),
-    //     .wdata(uart_data),
-    //     .rd(~w_tx_full),
-    //     .wr(uart_valid),
-    //     .rdata(w_rx_rdata),
-    //     .full(),
-    //     .empty(w_rx_empty)
-    // );
-
-    // top_fifo U_fifo_tx (
-    //     .clk(clk),
-    //     .reset(rst_n),
-    //     .wdata(w_rx_rdata),
-    //     .rd(tx_ready),
-    //     .wr(~w_rx_empty),
-    //     .rdata(w_tx_rdata),
-    //     .full(w_tx_full),
-    //     .empty(w_tx_empty)
-    // );
-
-    // uart_tx_lidar #(
-    //     .CLK_FREQ (CLK_FREQ),
-    //     .BAUD_RATE(BAUD_RATE)
-    // ) u_uart_tx_lidar (
-    //     .clk  (clk),
-    //     .rst_n(rst_n),
-    //     .data (w_tx_rdata),
-    //     .valid(~w_tx_empty),
-    //     .ready(tx_ready),
-    //     .tx   (wifi_tx)
-    // );
 
     // ===== Packet Sync & Parser =====
     packet_sync u_sync (
