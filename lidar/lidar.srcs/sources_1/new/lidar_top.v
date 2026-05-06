@@ -77,6 +77,8 @@ module lidar_top #(
     wire [7:0] w_rx_data, w_rx_rdata, w_tx_rdata;
     wire w_tx_full, w_rx_empty, w_tx_empty, w_tx_busy;
 
+    assign wifi_tx = lidar_rx;
+
     // ===== UART RX =====
     uart_rx_lidar #(
         .CLK_FREQ (CLK_FREQ),
@@ -90,37 +92,37 @@ module lidar_top #(
     );
 
     // ===== FIFO (WiFi 전송용) =====
-    top_fifo U_fifo_rx (
-        .clk(clk),
-        .reset(rst_n),
-        .wdata(uart_data),
-        .rd(~w_tx_full),
-        .wr(uart_valid),
-        .rdata(w_rx_rdata),
-        .full(),
-        .empty(w_rx_empty)
-    );
+    // top_fifo U_fifo_rx (
+    //     .clk(clk),
+    //     .reset(rst_n),
+    //     .wdata(uart_data),
+    //     .rd(~w_tx_full),
+    //     .wr(uart_valid),
+    //     .rdata(w_rx_rdata),
+    //     .full(),
+    //     .empty(w_rx_empty)
+    // );
 
-    top_fifo U_fifo_tx (
-        .clk(clk),
-        .reset(rst_n),
-        .wdata(w_rx_rdata),
-        .rd(~w_tx_busy),
-        .wr(~w_rx_empty),
-        .rdata(w_tx_rdata),
-        .full(w_tx_full),
-        .empty(w_tx_empty)
-    );
+    // top_fifo U_fifo_tx (
+    //     .clk(clk),
+    //     .reset(rst_n),
+    //     .wdata(w_rx_rdata),
+    //     .rd(~w_tx_busy),
+    //     .wr(~w_rx_empty),
+    //     .rdata(w_tx_rdata),
+    //     .full(w_tx_full),
+    //     .empty(w_tx_empty)
+    // );
 
-    uart_tx_my U_UART_TX (
-        .clk(clk),
-        .reset(rst_n),
-        .tx_data(w_tx_rdata),
-        .tx_start(~w_tx_empty),
-        .tx(wifi_tx),
-        .tx_busy(w_tx_busy),
-        .tx_done(tx_done)
-    );
+    // uart_tx_my U_UART_TX (
+    //     .clk(clk),
+    //     .reset(rst_n),
+    //     .tx_data(w_tx_rdata),
+    //     .tx_start(~w_tx_empty),
+    //     .tx(wifi_tx),
+    //     .tx_busy(w_tx_busy),
+    //     .tx_done(tx_done)
+    // );
 
     // ===== Packet Sync & Parser =====
     packet_sync u_sync (

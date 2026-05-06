@@ -9,8 +9,8 @@ module top #(
     parameter RIGHT_END_ANGLE_DEG = 9'd90,  // 오른쪽 끝 각도
     parameter LEFT_START_ANGLE_DEG = 9'd270,  // 왼쪽 시작 각도
     parameter LEFT_END_ANGLE_DEG = 9'd330,  // 왼쪽 끝 각도
-    parameter BRAKE_DIST_MM         = 14'd120,              // 브레이크 해야하는 인식 거리
-    parameter WARN_DIST_MM = 14'd200,  // warning 을 알려주는 거리
+    parameter BRAKE_DIST_MM         = 14'd300,              // 브레이크 해야하는 인식 거리
+    parameter WARN_DIST_MM = 14'd600,  // warning 을 알려주는 거리
     parameter HOLD_MS = 32'd200,  // brake 및 warning 유지 시간
     parameter SIDE_HOLD_MS = 32'd100,  // side warning 유지 시간
     parameter TURN_THRESHOLD_MM = 14'd800,  // 좌우, 최소 인식 거리
