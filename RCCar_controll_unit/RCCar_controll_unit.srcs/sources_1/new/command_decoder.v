@@ -12,7 +12,7 @@ module command_decoder (
     output reg [3:0] car_control
 );
 
-    reg brake_signal_prev;
+    reg  brake_signal_prev;
     wire brake_siganal_edge = brake_signal & ~brake_signal_prev;
 
     always @(posedge clk or negedge reset_n) begin
@@ -31,7 +31,21 @@ module command_decoder (
             car_control <= car_control;
             if (auto_mode) begin
                 if (brake_signal) begin
-                    car_control <= `RC_BACKWARD;
+                    case (direction_degree)
+                        `CENTER: begin
+                            car_control <= `RC_BACKWARD_RIGHT;
+                        end
+                        `TURN_LEFT_SMALL: begin
+                            car_control <= `RC_BACKWARD_RIGHT;
+                        end
+                        `TURN_RIGHT_SMALL: begin
+                            car_control = `RC_BACKWARD_LEFT;
+                        end
+
+                        `TURN_LEFT_BIG, `TURN_RIGHT_BIG: begin
+                            car_control = `RC_BACKWARD;
+                        end
+                    endcase
                 end else begin
                     case (direction_degree)
                         `CENTER: begin
