@@ -35,15 +35,11 @@ module command_decoder (
                         `CENTER: begin
                             car_control <= `RC_BACKWARD_RIGHT;
                         end
-                        `TURN_LEFT_SMALL: begin
+                        `TURN_LEFT_SMALL, `TURN_LEFT_BIG: begin
                             car_control <= `RC_BACKWARD_RIGHT;
                         end
-                        `TURN_RIGHT_SMALL: begin
+                        `TURN_RIGHT_SMALL, `TURN_RIGHT_BIG: begin
                             car_control = `RC_BACKWARD_LEFT;
-                        end
-
-                        `TURN_LEFT_BIG, `TURN_RIGHT_BIG: begin
-                            car_control = `RC_BACKWARD;
                         end
                     endcase
                 end else begin
