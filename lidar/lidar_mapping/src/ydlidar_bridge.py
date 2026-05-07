@@ -142,7 +142,7 @@ class YDLIDARBridge(Node):
                 corr = math.degrees(math.atan(
                     21.8 * (155.3 - dist_mm) / (155.3 * dist_mm)
                 ))
-                angle = (angle + corr) % 360.0
+                angle = (360.0 - (angle + corr)) % 360.0
                 slot = int(angle) % 360
                 self.current_ranges[slot] = dist_mm / 1000.0
 

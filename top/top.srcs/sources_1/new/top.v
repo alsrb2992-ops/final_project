@@ -33,7 +33,9 @@ module top #(
     output wire [1:0] dir_dc,
 
     input  wire rpi_signal,
+    input  wire rpi_signal_btn,
     input  wire cnn_signal,
+    input  wire cnn_signal_btn,
     output wire uart_tx_pin
 );
 
@@ -47,14 +49,14 @@ module top #(
     btn_debouncer u_btn_debouncer_rpi (
         .clk  (clk),
         .reset(~rst_n),
-        .i_btn(rpi_signal),
+        .i_btn(rpi_signal_btn),
         .o_btn(debounced_rpi_signal)
     );
 
     btn_debouncer u_btn_debouncer_cnn (
         .clk  (clk),
         .reset(~rst_n),
-        .i_btn(cnn_signal),
+        .i_btn(cnn_signal_btn),
         .o_btn(debounced_cnn_signal)
     );
 
@@ -103,13 +105,16 @@ module top #(
         .dir_dc          (dir_dc)
     );
 
+
+    wire rpi_signal_all = debounced_rpi_signal || rpi_signal;
+    wire cnn_signal_all = debounced_cnn_signal || cnn_signal;
     UART_RPI_CNN_TOP u_UART_RPI_CNN_TOP (
         .clk(clk),  // 100 MHz
         .rst_n(rst_n),
         .uart_tx_pin(uart_tx_pin),
         // .uart_rx_pin(uart_rx_pin),
-        .rpi_signal (debounced_rpi_signal),   // RPi GPIO (1-sec toggle on crisis)
-        .cnn_signal(debounced_cnn_signal)  // RPI GPIO 에서 오는 단일 선
+        .rpi_signal(rpi_signal_all),  // RPi GPIO (1-sec toggle on crisis)
+        .cnn_signal(cnn_signal_all)  // RPI GPIO 에서 오는 단일 선
         // SHT40 I2C Interface
         // .sht_i2c_sda(sht_i2c_sda),
         // .sht_i2c_scl(sht_i2c_scl),

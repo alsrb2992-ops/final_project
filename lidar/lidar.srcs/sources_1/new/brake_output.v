@@ -43,7 +43,7 @@ module brake_output #(
                 // 제동 신호 들어오면 카운터 리셋하고 유지
                 brake_gpio <= 1'b1;
                 hold_cnt   <= HOLD_CYCLES;
-            end else if (hold_cnt > 0) begin
+            end else if (hold_cnt) begin
                 // 홀드 타임 동안 유지
                 hold_cnt   <= hold_cnt - 1;
                 brake_gpio <= 1'b1;
@@ -63,7 +63,7 @@ module brake_output #(
             if (warning_signal) begin
                 warning_led <= 1'b1;
                 hold_cnt_1  <= HOLD_CYCLES;
-            end else if (hold_cnt_1 > 0) begin
+            end else if (hold_cnt_1) begin
                 hold_cnt_1  <= hold_cnt_1 - 1;
                 warning_led <= 1'b1;
             end else begin
@@ -77,12 +77,13 @@ module brake_output #(
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             hold_cnt_2 <= 0;
+            side_warning_signal_gpio <= 0;
         end else begin
 
             if (side_warning_signal || warning_signal) begin
                 side_warning_signal_gpio <= 1'b1;
                 hold_cnt_2 <= SIDE_HOLD_CYCLES;
-            end else if (hold_cnt_2 > 0) begin
+            end else if (hold_cnt_2) begin
                 hold_cnt_2               <= hold_cnt_2 - 1;
                 side_warning_signal_gpio <= 1'b1;
             end else begin
