@@ -6,17 +6,34 @@ from geometry_msgs.msg import TransformStamped
 from tf2_ros import StaticTransformBroadcaster
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from rclpy.duration import Duration
+from std_msgs.msg import String, Bool
 import serial, struct, math
+
+# YDLIDAR 프로토콜
+LIDAR_HDR1 = 0xAA
+LIDAR_HDR2 = 0x55
+
+# Board 프로토콜
+BOARD_STX1 = 0xAB
+BOARD_STX2 = 0xCD
+TYPE_RPI   = 0x01
+TYPE_CNN   = 0x02
 
 class YDLIDARBridge(Node):
     def __init__(self):
         super().__init__('ydlidar_bridge')
 
+        # /scan 퍼블리셔
         qos = QoSProfile(depth=10)
         qos.reliability = ReliabilityPolicy.BEST_EFFORT
         qos.history = HistoryPolicy.KEEP_LAST
         self.pub = self.create_publisher(LaserScan, '/scan', qos)
 
+        # 경고 퍼블리셔
+        self.rpi_pub = self.create_publisher(Bool, '/alert/rpi', 10)
+        self.cnn_pub = self.create_publisher(Bool, '/alert/cnn', 10)
+
+        # Static TF
         self.tf_broadcaster = StaticTransformBroadcaster(self)
         t = TransformStamped()
         t.header.stamp = self.get_clock().now().to_msg()
@@ -48,19 +65,60 @@ class YDLIDARBridge(Node):
 
     def parse_buf(self):
         buf = self.buf
-        while len(buf) >= 10:
-            if buf[0] != 0xAA or buf[1] != 0x55:
-                buf.pop(0)
-                continue
-            lsn = buf[3]
-            pkt_len = 10 + 2 * lsn
-            if len(buf) < pkt_len:
-                break
-            pkt = bytes(buf[:pkt_len])
-            del buf[:pkt_len]
-            self.process_packet(pkt)
+        while len(buf) >= 2:
+            # Board 패킷 감지 (0xAB 0xCD)
+            if buf[0] == BOARD_STX1 and buf[1] == BOARD_STX2:
+                if len(buf) < 4:
+                    break
+                ptype = buf[2]
+                plen  = buf[3]
+                total = 4 + plen + 1  # STX(2) + TYPE(1) + LEN(1) + PAYLOAD + CS(1)
+                if len(buf) < total:
+                    break
+                payload = bytes(buf[4:4+plen])
+                cs_recv = buf[4+plen]
+                del buf[:total]
+                self.process_board_packet(ptype, plen, payload, cs_recv)
 
-    def process_packet(self, pkt):
+            # YDLIDAR 패킷 감지 (0xAA 0x55)
+            elif buf[0] == LIDAR_HDR1 and buf[1] == LIDAR_HDR2:
+                if len(buf) < 10:
+                    break
+                lsn = buf[3]
+                pkt_len = 10 + 2 * lsn
+                if len(buf) < pkt_len:
+                    break
+                pkt = bytes(buf[:pkt_len])
+                del buf[:pkt_len]
+                self.process_lidar_packet(pkt)
+
+            else:
+                buf.pop(0)
+
+    def process_board_packet(self, ptype, plen, payload, cs_recv):
+        # 체크섬 검증
+        cs_calc = ptype ^ plen
+        for b in payload:
+            cs_calc ^= b
+        if cs_calc != cs_recv:
+            self.get_logger().warn(f"Board checksum error: type={ptype:#x} calc={cs_calc:#x} recv={cs_recv:#x}")
+            return
+
+        if ptype == TYPE_RPI:
+            self.get_logger().warn('🚨 RPi EVENT: 살려주세요 감지!')
+            msg = Bool()
+            msg.data = True
+            self.rpi_pub.publish(msg)
+
+        elif ptype == TYPE_CNN:
+            person_detected = bool(payload[0] & 0x01) if payload else False
+            if person_detected:
+                self.get_logger().warn('👤 CNN EVENT: 사람 감지!')
+                msg = Bool()
+                msg.data = True
+                self.cnn_pub.publish(msg)
+
+    def process_lidar_packet(self, pkt):
         ct      = pkt[2]
         lsn     = pkt[3]
         fsa_raw = struct.unpack_from('<H', pkt, 4)[0]
@@ -96,7 +154,6 @@ class YDLIDARBridge(Node):
             return
 
         msg = LaserScan()
-        # scan을 0.15초 과거로 발행 → rf2o TF가 이미 존재하는 시간
         stamp = self.get_clock().now()
         msg.header.stamp    = stamp.to_msg()
         msg.header.frame_id = 'laser_frame'

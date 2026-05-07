@@ -54,7 +54,7 @@ module top #(
     btn_debouncer u_btn_debouncer_cnn (
         .clk  (clk),
         .reset(~rst_n),
-        .i_btn(nn_signal),
+        .i_btn(cnn_signal),
         .o_btn(debounced_cnn_signal)
     );
 
