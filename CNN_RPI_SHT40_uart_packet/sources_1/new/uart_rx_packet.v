@@ -7,10 +7,10 @@
 //           rx_done  - 1-cycle pulse when full byte received
 //           rx_error - framing error (stop bit not '1')
 //=============================================================================
-module uart_rx #(
+module uart_rx_packet #(
     parameter integer CLK_FREQ  = 100_000_000,
     parameter integer BAUD_RATE = 115_200
-)(
+) (
     input  wire       clk,
     input  wire       rst,
     input  wire       rx,
@@ -22,7 +22,7 @@ module uart_rx #(
     localparam integer OVS_DIV = CLK_FREQ / (BAUD_RATE * 16);
 
     reg [$clog2(OVS_DIV)-1:0] ovs_cnt;
-    reg                        ovs_tick;
+    reg                       ovs_tick;
 
     always @(posedge clk or posedge rst) begin
         if (rst) begin
@@ -37,10 +37,10 @@ module uart_rx #(
         end
     end
 
-    localparam [1:0] ST_IDLE  = 2'd0;
+    localparam [1:0] ST_IDLE = 2'd0;
     localparam [1:0] ST_START = 2'd1;
-    localparam [1:0] ST_DATA  = 2'd2;
-    localparam [1:0] ST_STOP  = 2'd3;
+    localparam [1:0] ST_DATA = 2'd2;
+    localparam [1:0] ST_STOP = 2'd3;
 
     reg [1:0] state;
     reg [3:0] sample_cnt;
@@ -89,10 +89,8 @@ module uart_rx #(
                         if (sample_cnt == 4'd15) begin
                             sample_cnt <= 4'd0;
                             shift_reg  <= {rx, shift_reg[7:1]};
-                            if (bit_idx == 3'd7)
-                                state <= ST_STOP;
-                            else
-                                bit_idx <= bit_idx + 1'b1;
+                            if (bit_idx == 3'd7) state <= ST_STOP;
+                            else bit_idx <= bit_idx + 1'b1;
                         end else begin
                             sample_cnt <= sample_cnt + 1'b1;
                         end

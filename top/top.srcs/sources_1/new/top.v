@@ -20,23 +20,43 @@ module top #(
     parameter MAX_DECEL_PER_CYCLE   = 1000  ,                // 한번에 바뀔 수 있는 dc 수치
     parameter DIR_CHANGE_FREQUENCY  = 250_000             // 좌우 거리 유지하는 시간
 ) (
-    input             sysclk,
-    input             reset_n,
-    input             lidar_rx,
-    input             bluetooth_rx,
+    input  wire       sysclk,
+    input  wire       reset_n,
+    input  wire       lidar_rx,
+    input  wire       bluetooth_rx,
     output wire       wifi_tx,
     output wire       pwm_servo,
     output wire       pwm_dc,
     output wire       warning_led,
     output wire       brake_gpio,
     output wire       side_warning_signal_gpio,
-    output wire [1:0] dir_dc
+    output wire [1:0] dir_dc,
+
+    input  wire rpi_signal,
+    input  wire cnn_signal,
+    output wire uart_tx_pin
 );
 
 
     wire [2:0] direction_degree_gpio;
     wire rst_n = reset_n; // 리셋 신호는 active low이므로 반전하여 사용
     wire clk = sysclk;
+
+    wire debounced_rpi_signal, debounced_cnn_signal;
+
+    btn_debouncer u_btn_debouncer_rpi (
+        .clk  (clk),
+        .reset(~rst_n),
+        .i_btn(rpi_signal),
+        .o_btn(debounced_rpi_signal)
+    );
+
+    btn_debouncer u_btn_debouncer_cnn (
+        .clk  (clk),
+        .reset(~rst_n),
+        .i_btn(nn_signal),
+        .o_btn(debounced_cnn_signal)
+    );
 
     lidar_top #(
         .CLK_FREQ             (CLK_FREQ),
@@ -82,4 +102,21 @@ module top #(
         .pwm_dc          (pwm_dc),
         .dir_dc          (dir_dc)
     );
+
+    UART_RPI_CNN_TOP u_UART_RPI_CNN_TOP (
+        .clk(clk),  // 100 MHz
+        .rst_n(rst_n),
+        .uart_tx_pin(uart_tx_pin),
+        // .uart_rx_pin(uart_rx_pin),
+        .rpi_signal (debounced_rpi_signal),   // RPi GPIO (1-sec toggle on crisis)
+        .cnn_signal(debounced_cnn_signal)  // RPI GPIO 에서 오는 단일 선
+        // SHT40 I2C Interface
+        // .sht_i2c_sda(sht_i2c_sda),
+        // .sht_i2c_scl(sht_i2c_scl),
+        // .led_tx_active(led_tx_active),
+        // .led_rpi_active(led_rpi_active),
+        // .led_cnn_active(led_cnn_active)
+    );
+
+
 endmodule

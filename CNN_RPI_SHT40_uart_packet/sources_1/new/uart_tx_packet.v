@@ -8,7 +8,7 @@
 //           done   - 1-cycle pulse when last stop bit is sent
 //           tx     - UART line (idle = 1)
 //=============================================================================
-module uart_tx (
+module uart_tx_packet (
     input  wire       clk,
     input  wire       rst,
     input  wire       baud_tick,
@@ -19,10 +19,10 @@ module uart_tx (
     output reg        done
 );
 
-    localparam [1:0] ST_IDLE  = 2'd0;
+    localparam [1:0] ST_IDLE = 2'd0;
     localparam [1:0] ST_START = 2'd1;
-    localparam [1:0] ST_DATA  = 2'd2;
-    localparam [1:0] ST_STOP  = 2'd3;
+    localparam [1:0] ST_DATA = 2'd2;
+    localparam [1:0] ST_STOP = 2'd3;
 
     reg [1:0] state;
     reg [7:0] shift_reg;
@@ -62,10 +62,8 @@ module uart_tx (
                     if (baud_tick) begin
                         tx        <= shift_reg[0];
                         shift_reg <= {1'b0, shift_reg[7:1]};
-                        if (bit_idx == 3'd7)
-                            state <= ST_STOP;
-                        else
-                            bit_idx <= bit_idx + 1'b1;
+                        if (bit_idx == 3'd7) state <= ST_STOP;
+                        else bit_idx <= bit_idx + 1'b1;
                     end
                 end
 
