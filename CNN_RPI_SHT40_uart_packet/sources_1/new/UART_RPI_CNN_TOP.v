@@ -11,15 +11,15 @@ module UART_RPI_CNN_TOP (
     // input  wire uart_rx_pin,
 
     input wire rpi_signal,  // RPi GPIO (1-sec toggle on crisis)
-    input wire cnn_signal   // Z7-20에서 오는 단일 선
+    input wire cnn_signal,  // Z7-20에서 오는 단일 선
 
     // SHT40 I2C Interface
     // inout  wire sht_i2c_sda,
     // output wire sht_i2c_scl,
 
     // output wire led_tx_active,
-    // output wire led_rpi_active,
-    // output wire led_cnn_active
+    output wire led_rpi_active,
+    output wire led_cnn_active
 );
     wire       rst = ~rst_n;
     // 내부 신호 선언 (모두 서브모듈 출력으로 구동 → wire)
@@ -132,7 +132,7 @@ module UART_RPI_CNN_TOP (
 
     // Status LEDs
     // assign led_tx_active  = tx_busy;
-    // assign led_rpi_active = rpi_active;
-    // assign led_cnn_active = cnn_event;
+    assign led_rpi_active = rpi_active;
+    assign led_cnn_active = cnn_event;
 
 endmodule

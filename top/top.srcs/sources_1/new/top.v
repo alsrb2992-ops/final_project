@@ -27,9 +27,9 @@ module top #(
     output wire       wifi_tx,
     output wire       pwm_servo,
     output wire       pwm_dc,
-    output wire       warning_led,
     output wire       brake_gpio,
-    output wire       side_warning_signal_gpio,
+    output wire       led_rpi_active,
+    output wire       led_cnn_active,
     output wire [1:0] dir_dc,
 
     input  wire rpi_signal,
@@ -114,13 +114,13 @@ module top #(
         .uart_tx_pin(uart_tx_pin),
         // .uart_rx_pin(uart_rx_pin),
         .rpi_signal(rpi_signal_all),  // RPi GPIO (1-sec toggle on crisis)
-        .cnn_signal(cnn_signal_all)  // RPI GPIO 에서 오는 단일 선
+        .cnn_signal(cnn_signal_all),  // RPI GPIO 에서 오는 단일 선
         // SHT40 I2C Interface
         // .sht_i2c_sda(sht_i2c_sda),
         // .sht_i2c_scl(sht_i2c_scl),
         // .led_tx_active(led_tx_active),
-        // .led_rpi_active(led_rpi_active),
-        // .led_cnn_active(led_cnn_active)
+        .led_rpi_active(led_rpi_active),
+        .led_cnn_active(led_cnn_active)
     );
 
 
