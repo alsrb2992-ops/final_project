@@ -133,6 +133,6 @@ module UART_RPI_CNN_TOP (
     // Status LEDs
     // assign led_tx_active  = tx_busy;
     assign led_rpi_active = rpi_active;
-    assign led_cnn_active = cnn_event;
+    assign led_cnn_active = cnn_signal;
 
 endmodule
