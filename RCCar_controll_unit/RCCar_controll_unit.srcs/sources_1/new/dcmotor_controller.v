@@ -18,8 +18,8 @@ module dcmotor_controller #(
     // 125MHz 클럭 기준
 
     localparam pwm_period = 5000;  // Hz  
-    localparam forward_back_ms = 93;  // %     
-    localparam turn_ms = 89;  // %     
+    localparam forward_back_ms = 87;  // %     
+    localparam turn_ms = 83;  // %     
     localparam pwm_period_cnt = CLK_FREQ / pwm_period;
     localparam forward_back_cnt = (pwm_period_cnt * forward_back_ms) / 100;
     localparam turn_cnt = (pwm_period_cnt * turn_ms) / 100;
