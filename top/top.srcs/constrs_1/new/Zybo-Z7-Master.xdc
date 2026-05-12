@@ -101,8 +101,8 @@ set_property -dict { PACKAGE_PIN G14   IOSTANDARD LVCMOS33 } [get_ports { led_cn
  
 
 ##Pmod Header JA (XADC)
-set_property -dict { PACKAGE_PIN N15   IOSTANDARD LVCMOS33 } [get_ports { pwm_servo  }]; #IO_L21P_T3_DQS_AD14P_35 Sch=JA1_R_p		   
-# set_property -dict { PACKAGE_PIN L14   IOSTANDARD LVCMOS33 } [get_ports {  }]; #IO_L22P_T3_AD7P_35 Sch=JA2_R_P             
+# set_property -dict { PACKAGE_PIN N15   IOSTANDARD LVCMOS33 } [get_ports {   }]; #IO_L21P_T3_DQS_AD14P_35 Sch=JA1_R_p		   
+set_property -dict { PACKAGE_PIN L14   IOSTANDARD LVCMOS33 } [get_ports { pwm_servo }]; #IO_L22P_T3_AD7P_35 Sch=JA2_R_P             
 set_property -dict { PACKAGE_PIN K16   IOSTANDARD LVCMOS33 } [get_ports { bluetooth_rx }]; #IO_L24P_T3_AD15P_35 Sch=JA3_R_P            
 set_property -dict { PACKAGE_PIN K14   IOSTANDARD LVCMOS33 } [get_ports { lidar_rx }]; #IO_L20P_T3_AD6P_35 Sch=JA4_R_P             
 # set_property -dict { PACKAGE_PIN N16   IOSTANDARD LVCMOS33 } [get_ports {  }]; #IO_L21N_T3_DQS_AD14N_35 Sch=JA1_R_N        
