@@ -12,6 +12,8 @@ module left_right_comparator #(
     input  wire        rst_n,
     input  wire [13:0] left_min_distance,
     input  wire [13:0] right_min_distance,
+    input  wire        is_left_over,
+    input  wire        is_right_over,
     input  wire        warning_signal,
     output wire [ 2:0] direction_degree
 );
@@ -74,6 +76,10 @@ module left_right_comparator #(
     assign diff        = left_closer ? (right_min_distance - left_min_distance)
                                      : (left_min_distance  - right_min_distance);
 
+    wire only_left_over = is_left_over & ~is_right_over;
+    wire only_right_over = ~is_left_over & is_right_over;
+
+
     // 현재 방향 상태
     wire is_right_big = (c_direction_degree == `TURN_RIGHT_BIG);
     wire is_left_big = (c_direction_degree == `TURN_LEFT_BIG);
@@ -100,7 +106,7 @@ module left_right_comparator #(
             n_direction_degree = `CENTER;
 
             // ===== 4순위: 오른쪽이 더 가까움 → 왼쪽으로 회피 =====
-        end else if (!left_closer) begin
+        end else if (!left_closer || only_left_over) begin
             if (is_left_big) begin
                 // 현재 LEFT_BIG → SMALL_DIFF 미만이 되어야 내려감 (히스테리시스)
                 // diff >= SMALL_TURN_DIFF_MM 이므로 여기선 BIG 유지

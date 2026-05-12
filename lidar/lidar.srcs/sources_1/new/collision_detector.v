@@ -25,15 +25,18 @@ module collision_detector #(
     parameter SIDE_BRAKE_DIST_MM           = 14'd400,
     parameter WARN_DIST_MM                 = 14'd600,
     parameter SIDE_DIST_MM                 = 14'd300,
+    parameter COUNT_DIST_MM                = 14'd500,
     parameter HYSTERESIS_MM                = 14'd100
 ) (
     input wire clk,
     input wire rst_n,
 
-    input wire [13:0] distance,
-    input wire [ 8:0] angle,
-    input wire        data_valid,
-    input wire        round_done,
+    input  wire [13:0] distance,
+    input  wire [ 8:0] angle,
+    input  wire        data_valid,
+    input  wire        round_done,
+    output wire        is_left_over,
+    output wire        is_right_over,
 
     output wire brake_signal,
     output reg warning_signal,
@@ -51,6 +54,18 @@ module collision_detector #(
 
     localparam WARN_ON_THRESHOLD = WARN_DIST_MM;
     localparam WARN_OFF_THRESHOLD = WARN_DIST_MM + HYSTERESIS_MM;
+
+    // YDLidar X4 스펙
+    localparam POINTS_PER_REV = 625;  // 5000Hz ÷ 8Hz
+
+    // 해당 각도 범위의 총 포인트 수
+    localparam ANGLE_RANGE = RIGHT_END_ANGLE_DEG - RIGHT_START_ANGLE_DEG;
+    localparam POINTS_IN_RANGE = (POINTS_PER_REV * ANGLE_RANGE) / 360;
+    // = 625 × 55 / 360 = 95
+
+    // 신뢰 개수: 범위 내 포인트의 50%
+    localparam TRUST_COUNT = POINTS_IN_RANGE / 50;
+    // = 95 / 10 = 9
 
     // ===== 각도 영역 판단 =====
     wire in_front_zone = (angle <= FRONT_ANGLE_DEG) ||
@@ -121,14 +136,25 @@ module collision_detector #(
     reg c_left_warning_signal, n_left_warning_signal;
     reg c_right_warning_signal, n_right_warning_signal;
 
+    reg [$clog2(POINTS_IN_RANGE)-1:0] c_right_over_count, n_right_over_count;
+    reg [$clog2(POINTS_IN_RANGE)-1:0] c_left_over_count, n_left_over_count;
+    reg c_is_left_over, n_is_left_over;
+    reg c_is_right_over, n_is_right_over;
+
+    assign is_left_over  = c_is_left_over;
+    assign is_right_over = c_is_right_over;
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             c_left_min_distance    <= 14'h3FFF;
             c_right_min_distance   <= 14'h3FFF;
             c_left_min_reg         <= 14'h3FFF;  // FIX: 0 → 3FFF
             c_right_min_reg        <= 14'h3FFF;  // FIX: 0 → 3FFF
-            c_left_warning_signal  <= 1'b0;
-            c_right_warning_signal <= 1'b0;
+            c_left_warning_signal  <= 0;
+            c_right_warning_signal <= 0;
+            c_right_over_count     <= 0;
+            c_left_over_count      <= 0;
+            c_is_left_over         <= 1'b0;
+            c_is_right_over        <= 1'b0;
         end else begin
             c_left_min_distance    <= n_left_min_distance;
             c_right_min_distance   <= n_right_min_distance;
@@ -136,6 +162,10 @@ module collision_detector #(
             c_right_min_reg        <= n_right_min_reg;
             c_left_warning_signal  <= n_left_warning_signal;
             c_right_warning_signal <= n_right_warning_signal;
+            c_right_over_count     <= n_right_over_count;
+            c_left_over_count      <= n_left_over_count;
+            c_is_left_over         <= n_is_left_over;
+            c_is_right_over        <= n_is_right_over;
         end
     end
 
@@ -143,22 +173,35 @@ module collision_detector #(
     localparam SIDE_ON_THRESHOLD = SIDE_DIST_MM;
     localparam SIDE_OFF_THRESHOLD = SIDE_DIST_MM + HYSTERESIS_MM;
 
+
     always @(*) begin
         // 기본값: 이전 상태 유지
+
         n_left_min_distance    = c_left_min_distance;
         n_right_min_distance   = c_right_min_distance;
         n_left_min_reg         = c_left_min_reg;
         n_right_min_reg        = c_right_min_reg;
         n_left_warning_signal  = c_left_warning_signal;
         n_right_warning_signal = c_right_warning_signal;
+        n_left_over_count      = c_left_over_count;
+        n_right_over_count     = c_right_over_count;
+        n_is_left_over         = c_is_left_over;
+        n_is_right_over        = c_is_right_over;
 
         // ===== 스캔 중: min 값 누적 갱신 =====
         if (data_valid) begin
             if (left_zone && distance != 14'd0) begin
+                if (distance > COUNT_DIST_MM) begin
+                    n_left_over_count = c_left_over_count + 1;
+                end
                 if (distance < c_left_min_distance) begin
                     n_left_min_distance = distance;
                 end
             end else if (right_zone && distance != 14'd0) begin
+                if (distance > COUNT_DIST_MM) begin
+                    n_right_over_count = c_right_over_count + 1;
+                end
+
                 if (distance < c_right_min_distance) begin
                     n_right_min_distance = distance;
                 end
@@ -180,14 +223,22 @@ module collision_detector #(
             n_right_warning_signal = 1'b0;
         end
 
+
         // ===== 1회전 완료: 래치 + 리셋 =====
         if (round_done) begin
             n_left_min_reg       = c_left_min_distance;
             n_right_min_reg      = c_right_min_distance;
             n_left_min_distance  = 14'h3FFF;
             n_right_min_distance = 14'h3FFF;
+            n_left_over_count    = 0;
+            n_right_over_count   = 0;
+            n_is_left_over       = c_left_over_count > TRUST_COUNT;
+            n_is_right_over      = c_right_over_count > TRUST_COUNT;
         end
     end
+
+
+
 
     assign side_warning_signal = c_left_warning_signal || c_right_warning_signal;
     assign left_min_distance = c_left_min_reg;

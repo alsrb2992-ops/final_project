@@ -4,13 +4,18 @@ module top #(
     parameter CLK_FREQ = 125_000_000,
     parameter BAUD_RATE = 128_000,  // uart baud_rate
     parameter FRONT_ANGLE_DEG       = 9'd30,                // lidar 0도 기준으로 부터 양방향으로 전방이라 인식하는 각도
-    parameter BEHIND_ANGLE_DEG      = 9'd40,                // lidar 180도 기준으로 부터 양방향으로 후방이라 인식하는 각도
+    parameter FRONT_SIDE_1_START_ANGLE_DEG = 9'd35,
+    parameter FRONT_SIDE_1_END_ANGLE_DEG = 9'd55,
+    parameter FRONT_SIDE_2_START_ANGLE_DEG = 9'd305,
+    parameter FRONT_SIDE_2_END_ANGLE_DEG = 9'd325,
+    parameter BEHIND_ANGLE_DEG           = 9'd40,                // lidar 180도 기준으로 부터 양방향으로 후방이라 인식하는 각도
     parameter RIGHT_START_ANGLE_DEG = 9'd45,  // 오른쪽 시작 각도
     parameter RIGHT_END_ANGLE_DEG = 9'd100,  // 오른쪽 끝 각도
     parameter LEFT_START_ANGLE_DEG = 9'd260,  // 왼쪽 시작 각도
     parameter LEFT_END_ANGLE_DEG = 9'd315,  // 왼쪽 끝 각도
     parameter BRAKE_DIST_MM         = 14'd300,              // 브레이크 해야하는 인식 거리
     parameter WARN_DIST_MM = 14'd600,  // warning 을 알려주는 거리
+    parameter COUNT_DIST_MM = 14'd500,
     parameter HOLD_MS = 32'd200,  // brake 및 warning 유지 시간
     parameter SIDE_HOLD_MS = 32'd100,  // side warning 유지 시간
     parameter TURN_THRESHOLD_MM = 14'd800,  // 좌우, 최소 인식 거리
@@ -61,22 +66,27 @@ module top #(
     );
 
     lidar_top #(
-        .CLK_FREQ             (CLK_FREQ),
-        .BAUD_RATE            (BAUD_RATE),
-        .FRONT_ANGLE_DEG      (FRONT_ANGLE_DEG),
-        .BEHIND_ANGLE_DEG     (BEHIND_ANGLE_DEG),
-        .RIGHT_START_ANGLE_DEG(RIGHT_START_ANGLE_DEG),
-        .RIGHT_END_ANGLE_DEG  (RIGHT_END_ANGLE_DEG),
-        .LEFT_START_ANGLE_DEG (LEFT_START_ANGLE_DEG),
-        .LEFT_END_ANGLE_DEG   (LEFT_END_ANGLE_DEG),
-        .BRAKE_DIST_MM        (BRAKE_DIST_MM),
-        .WARN_DIST_MM         (WARN_DIST_MM),
-        .HOLD_MS              (HOLD_MS),
-        .SIDE_HOLD_MS         (SIDE_HOLD_MS),
-        .TURN_THRESHOLD_MM    (TURN_THRESHOLD_MM),
-        .BIG_TURN_DIFF_MM     (BIG_TURN_DIFF_MM),
-        .SMALL_TURN_DIFF_MM   (SMALL_TURN_DIFF_MM),
-        .DIR_CHANGE_FREQUENCY (DIR_CHANGE_FREQUENCY)
+        .CLK_FREQ                    (CLK_FREQ),
+        .BAUD_RATE                   (BAUD_RATE),
+        .FRONT_ANGLE_DEG             (FRONT_ANGLE_DEG),
+        .FRONT_SIDE_1_START_ANGLE_DEG(FRONT_SIDE_1_START_ANGLE_DEG),
+        .FRONT_SIDE_1_END_ANGLE_DEG  (FRONT_SIDE_1_END_ANGLE_DEG),
+        .FRONT_SIDE_2_START_ANGLE_DEG(FRONT_SIDE_2_START_ANGLE_DEG),
+        .FRONT_SIDE_2_END_ANGLE_DEG  (FRONT_SIDE_2_END_ANGLE_DEG),
+        .BEHIND_ANGLE_DEG            (BEHIND_ANGLE_DEG),
+        .RIGHT_START_ANGLE_DEG       (RIGHT_START_ANGLE_DEG),
+        .RIGHT_END_ANGLE_DEG         (RIGHT_END_ANGLE_DEG),
+        .LEFT_START_ANGLE_DEG        (LEFT_START_ANGLE_DEG),
+        .LEFT_END_ANGLE_DEG          (LEFT_END_ANGLE_DEG),
+        .BRAKE_DIST_MM               (BRAKE_DIST_MM),
+        .WARN_DIST_MM                (WARN_DIST_MM),
+        .COUNT_DIST_MM               (COUNT_DIST_MM),
+        .HOLD_MS                     (HOLD_MS),
+        .SIDE_HOLD_MS                (SIDE_HOLD_MS),
+        .TURN_THRESHOLD_MM           (TURN_THRESHOLD_MM),
+        .BIG_TURN_DIFF_MM            (BIG_TURN_DIFF_MM),
+        .SMALL_TURN_DIFF_MM          (SMALL_TURN_DIFF_MM),
+        .DIR_CHANGE_FREQUENCY        (DIR_CHANGE_FREQUENCY)
     ) u_lidar_top (
         .clk(clk),
         .rst_n(rst_n),

@@ -7,23 +7,28 @@
 // 2. collision_detector - Hysteresis 추가
 // ============================================================
 module lidar_top #(
-    parameter CLK_FREQ              = 125_000_000,
-    parameter BAUD_RATE             = 128_000,
-    parameter FRONT_ANGLE_DEG       = 9'd45,
-    parameter BEHIND_ANGLE_DEG      = 9'd40,
-    parameter RIGHT_START_ANGLE_DEG = 9'd45,
-    parameter RIGHT_END_ANGLE_DEG   = 9'd90,
-    parameter LEFT_START_ANGLE_DEG  = 9'd270,
-    parameter LEFT_END_ANGLE_DEG    = 9'd315,
-    parameter BRAKE_DIST_MM         = 14'd300,
-    parameter WARN_DIST_MM          = 14'd600,
-    parameter HYSTERESIS_MM         = 14'd100,
-    parameter HOLD_MS               = 32'd200,
-    parameter SIDE_HOLD_MS          = 32'd100,
-    parameter TURN_THRESHOLD_MM     = 14'd800,
-    parameter BIG_TURN_DIFF_MM      = 14'd500,
-    parameter SMALL_TURN_DIFF_MM    = 14'd200,
-    parameter DIR_CHANGE_FREQUENCY  = 2_500_000
+    parameter CLK_FREQ                     = 125_000_000,
+    parameter BAUD_RATE                    = 128_000,
+    parameter FRONT_ANGLE_DEG              = 9'd45,
+    parameter FRONT_SIDE_1_START_ANGLE_DEG = 9'd35,
+    parameter FRONT_SIDE_1_END_ANGLE_DEG   = 9'd55,
+    parameter FRONT_SIDE_2_START_ANGLE_DEG = 9'd305,
+    parameter FRONT_SIDE_2_END_ANGLE_DEG   = 9'd325,
+    parameter BEHIND_ANGLE_DEG             = 9'd40,
+    parameter RIGHT_START_ANGLE_DEG        = 9'd45,
+    parameter RIGHT_END_ANGLE_DEG          = 9'd90,
+    parameter LEFT_START_ANGLE_DEG         = 9'd270,
+    parameter LEFT_END_ANGLE_DEG           = 9'd315,
+    parameter BRAKE_DIST_MM                = 14'd300,
+    parameter WARN_DIST_MM                 = 14'd600,
+    parameter COUNT_DIST_MM                = 14'd500,
+    parameter HYSTERESIS_MM                = 14'd100,
+    parameter HOLD_MS                      = 32'd200,
+    parameter SIDE_HOLD_MS                 = 32'd100,
+    parameter TURN_THRESHOLD_MM            = 14'd800,
+    parameter BIG_TURN_DIFF_MM             = 14'd500,
+    parameter SMALL_TURN_DIFF_MM           = 14'd200,
+    parameter DIR_CHANGE_FREQUENCY         = 2_500_000
 ) (
     input  wire       clk,
     input  wire       rst_n,
@@ -73,6 +78,10 @@ module lidar_top #(
     wire        round_done_sig;
 
     wire [ 2:0] direction_degree;
+
+
+    wire        is_left_over;
+    wire        is_right_over;
 
     // wire [7:0] w_rx_data, w_rx_rdata, w_tx_rdata;
     // wire w_tx_full, w_rx_empty, w_tx_empty, w_tx_busy;
@@ -192,15 +201,20 @@ module lidar_top #(
 
     // ===== Collision Detector (개선: 히스테리시스) =====
     collision_detector #(
-        .FRONT_ANGLE_DEG      (FRONT_ANGLE_DEG),
-        .BEHIND_ANGLE_DEG     (BEHIND_ANGLE_DEG),
-        .RIGHT_START_ANGLE_DEG(RIGHT_START_ANGLE_DEG),
-        .RIGHT_END_ANGLE_DEG  (RIGHT_END_ANGLE_DEG),
-        .LEFT_START_ANGLE_DEG (LEFT_START_ANGLE_DEG),
-        .LEFT_END_ANGLE_DEG   (LEFT_END_ANGLE_DEG),
-        .BRAKE_DIST_MM        (BRAKE_DIST_MM),
-        .WARN_DIST_MM         (WARN_DIST_MM),
-        .HYSTERESIS_MM        (HYSTERESIS_MM)
+        .FRONT_ANGLE_DEG             (FRONT_ANGLE_DEG),
+        .FRONT_SIDE_1_START_ANGLE_DEG(FRONT_SIDE_1_START_ANGLE_DEG),
+        .FRONT_SIDE_1_END_ANGLE_DEG  (FRONT_SIDE_1_END_ANGLE_DEG),
+        .FRONT_SIDE_2_START_ANGLE_DEG(FRONT_SIDE_2_START_ANGLE_DEG),
+        .FRONT_SIDE_2_END_ANGLE_DEG  (FRONT_SIDE_2_END_ANGLE_DEG),
+        .BEHIND_ANGLE_DEG            (BEHIND_ANGLE_DEG),
+        .RIGHT_START_ANGLE_DEG       (RIGHT_START_ANGLE_DEG),
+        .RIGHT_END_ANGLE_DEG         (RIGHT_END_ANGLE_DEG),
+        .LEFT_START_ANGLE_DEG        (LEFT_START_ANGLE_DEG),
+        .LEFT_END_ANGLE_DEG          (LEFT_END_ANGLE_DEG),
+        .BRAKE_DIST_MM               (BRAKE_DIST_MM),
+        .WARN_DIST_MM                (WARN_DIST_MM),
+        .COUNT_DIST_MM               (COUNT_DIST_MM),
+        .HYSTERESIS_MM               (HYSTERESIS_MM)
     ) u_collision (
         .clk                (clk),
         .rst_n              (rst_n),
@@ -208,6 +222,8 @@ module lidar_top #(
         .angle              (filt_angle),
         .data_valid         (filt_valid),
         .round_done         (round_done_sig),
+        .is_left_over       (is_left_over),
+        .is_right_over      (is_right_over),
         .brake_signal       (brake_signal),
         .warning_signal     (warning_signal),
         .side_warning_signal(side_warning_signal),
@@ -227,6 +243,8 @@ module lidar_top #(
         .rst_n             (rst_n),
         .left_min_distance (left_min_distance),
         .right_min_distance(right_min_distance),
+        .is_left_over      (is_left_over),
+        .is_right_over     (is_right_over),
         .warning_signal    (warning_signal),
         .direction_degree  (direction_degree)
     );
