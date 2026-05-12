@@ -20,6 +20,7 @@ module lidar_top #(
     parameter LEFT_START_ANGLE_DEG         = 9'd270,
     parameter LEFT_END_ANGLE_DEG           = 9'd315,
     parameter BRAKE_DIST_MM                = 14'd300,
+    parameter SIDE_BRAKE_DIST_MM           = 14'd400,
     parameter WARN_DIST_MM                 = 14'd600,
     parameter COUNT_DIST_MM                = 14'd500,
     parameter HYSTERESIS_MM                = 14'd100,
@@ -65,10 +66,10 @@ module lidar_top #(
     wire [13:0] left_min_distance, right_min_distance;
 
     // Distance 2클럭 딜레이
-    reg [13:0] dist_out_d1, dist_out_d2;
-    reg [1:0] dist_is_d1, dist_is_d2;
-    reg dist_valid_d1, dist_valid_d2;
-    reg cs_ok_d1, cs_ok_d2;
+    reg [13:0] dist_out_d1, dist_out_d2, dist_out_d3;
+    reg [1:0] dist_is_d1, dist_is_d2, dist_is_d3;
+    reg dist_valid_d1, dist_valid_d2, dist_valid_d3;
+    reg cs_ok_d1, cs_ok_d2, cs_ok_d3;
 
     wire [13:0] filt_dist;
     wire [ 8:0] filt_angle;
@@ -160,12 +161,16 @@ module lidar_top #(
         if (!rst_n) begin
             dist_out_d1   <= 0;
             dist_out_d2   <= 0;
+            dist_out_d3   <= 0;
             dist_is_d1    <= 0;
             dist_is_d2    <= 0;
+            dist_is_d3    <= 0;
             dist_valid_d1 <= 0;
             dist_valid_d2 <= 0;
+            dist_valid_d3 <= 0;
             cs_ok_d1      <= 0;
             cs_ok_d2      <= 0;
+            cs_ok_d3      <= 0;
         end else begin
             dist_out_d1   <= dist_out;
             dist_is_d1    <= dist_is;
@@ -176,6 +181,11 @@ module lidar_top #(
             dist_is_d2    <= dist_is_d1;
             dist_valid_d2 <= dist_valid_d1;
             cs_ok_d2      <= cs_ok_d1;
+
+            dist_out_d3   <= dist_out_d2;
+            dist_is_d3    <= dist_is_d2;
+            dist_valid_d3 <= dist_valid_d2;
+            cs_ok_d3      <= cs_ok_d2;
         end
     end
 
@@ -183,8 +193,8 @@ module lidar_top #(
     interference_filter u_filter (
         .clk(clk),
         .rst_n(rst_n),
-        .distance_in(dist_out_d2),
-        .is_flag(dist_is_d2),
+        .distance_in(dist_out_d3),
+        .is_flag(dist_is_d3),
         .angle_in(angle_out),
         .data_valid(angle_valid),
         .distance_out(filt_dist),
@@ -212,6 +222,7 @@ module lidar_top #(
         .LEFT_START_ANGLE_DEG        (LEFT_START_ANGLE_DEG),
         .LEFT_END_ANGLE_DEG          (LEFT_END_ANGLE_DEG),
         .BRAKE_DIST_MM               (BRAKE_DIST_MM),
+        .SIDE_BRAKE_DIST_MM          (SIDE_BRAKE_DIST_MM),
         .WARN_DIST_MM                (WARN_DIST_MM),
         .COUNT_DIST_MM               (COUNT_DIST_MM),
         .HYSTERESIS_MM               (HYSTERESIS_MM)

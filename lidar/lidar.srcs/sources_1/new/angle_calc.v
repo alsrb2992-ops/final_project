@@ -33,9 +33,12 @@ module angle_calc (
 
     reg fsa_lsa_valid_1;  // fsa_lsa_valid 다음 클럭 (나눗셈)
     reg fsa_lsa_valid_2;  // 그 다음 클럭 (step_q6 확정)
+    reg fsa_lsa_valid_3;  // 그 다음 클럭 (step_q6 확정)
     reg [8:0] lsn_reg;
+    reg [8:0] lsn_reg_2;
 
     reg [31:0] lut_val;
+    reg [31:0] lut_val_2;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -48,8 +51,10 @@ module angle_calc (
             mult_tmp        <= 0;
             angle_diff_reg  <= 0;
             lsn_reg         <= 0;
+            lsn_reg_2       <= 0;
             fsa_lsa_valid_1 <= 0;
             fsa_lsa_valid_2 <= 0;
+            fsa_lsa_valid_3 <= 0;
         end else begin
             angle_valid <= 1'b0;
 
@@ -65,20 +70,26 @@ module angle_calc (
             // 플래그 파이프라인
             fsa_lsa_valid_1 <= fsa_lsa_valid;
             fsa_lsa_valid_2 <= fsa_lsa_valid_1;
+            fsa_lsa_valid_3 <= fsa_lsa_valid_2;
+
+            if (fsa_lsa_valid_1) begin
+                lut_val_2 <= lut_val;
+                lsn_reg_2 <= lsn_reg;
+            end
 
             // Stage 1: 나눗셈 → mult_tmp (15비트)
             // Stage 1: LUT 곱셈 (나눗셈 제거)
-            if (fsa_lsa_valid_1) begin
-                if (lsn_reg == 8'd1) begin
+            if (fsa_lsa_valid_2) begin
+                if (lsn_reg_2 == 8'd1) begin
                     mult_tmp <= 0;
                 end else begin
-                    mult_tmp <= (angle_diff_reg * lut_val) >> 16;
+                    mult_tmp <= (angle_diff_reg * lut_val_2) >> 16;
                 end
             end
 
             // Stage 2: mult_tmp 확정 후 step_q6 복사
             // (비블로킹이므로 한 클럭 뒤에야 mult_tmp 값이 확정됨)
-            if (fsa_lsa_valid_2) begin
+            if (fsa_lsa_valid_3) begin
                 step_q6 <= mult_tmp;
             end
 
