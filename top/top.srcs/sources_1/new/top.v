@@ -5,10 +5,10 @@ module top #(
     parameter BAUD_RATE = 128_000,  // uart baud_rate
     parameter FRONT_ANGLE_DEG       = 9'd30,                // lidar 0도 기준으로 부터 양방향으로 전방이라 인식하는 각도
     parameter BEHIND_ANGLE_DEG      = 9'd40,                // lidar 180도 기준으로 부터 양방향으로 후방이라 인식하는 각도
-    parameter RIGHT_START_ANGLE_DEG = 9'd90,  // 오른쪽 시작 각도
+    parameter RIGHT_START_ANGLE_DEG = 9'd45,  // 오른쪽 시작 각도
     parameter RIGHT_END_ANGLE_DEG = 9'd120,  // 오른쪽 끝 각도
     parameter LEFT_START_ANGLE_DEG = 9'd240,  // 왼쪽 시작 각도
-    parameter LEFT_END_ANGLE_DEG = 9'd270,  // 왼쪽 끝 각도
+    parameter LEFT_END_ANGLE_DEG = 9'd315,  // 왼쪽 끝 각도
     parameter BRAKE_DIST_MM         = 14'd300,              // 브레이크 해야하는 인식 거리
     parameter WARN_DIST_MM = 14'd600,  // warning 을 알려주는 거리
     parameter HOLD_MS = 32'd200,  // brake 및 warning 유지 시간
