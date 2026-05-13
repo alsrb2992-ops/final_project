@@ -2,33 +2,33 @@
 `include "lidar_define.vh"
 
 module left_right_comparator #(
-    parameter CLK_FREQ = 125_000_000,
+    parameter CLK_FREQ             = 125_000_000,
     parameter DIR_CHANGE_FREQUENCY = 2_500_000,
-    parameter TURN_THRESHOLD_MM    = 14'd800,   // 양쪽 다 이 이상이면 직진
-    parameter BIG_TURN_DIFF_MM = 14'd500,  // 이 이상 차이나면 BIG
-    parameter SMALL_TURN_DIFF_MM   = 14'd200    // 이 이상 차이나면 SMALL, 미만이면 CENTER
+    parameter TURN_THRESHOLD_MM    = 14'd800,
+    parameter BIG_TURN_DIFF_MM     = 14'd500,
+    parameter SMALL_TURN_DIFF_MM   = 14'd200
 ) (
     input  wire        clk,
     input  wire        rst_n,
     input  wire [13:0] left_min_distance,
     input  wire [13:0] right_min_distance,
+    input  wire        is_left_over,
+    input  wire        is_right_over,
     input  wire        warning_signal,
     output wire [ 2:0] direction_degree
 );
 
-    // ===== 동작 정리 =====
+    // ===== 로직 구조 =====
     //
-    //        0        200              500
-    //        |         |                |
-    //      CENTER  | SMALL    |   BIG
+    // [Step 1] 방향 결정 (어느 쪽으로 꺾을지)
+    //   1순위: only_right_over → 오른쪽
+    //   2순위: only_left_over  → 왼쪽
+    //   3순위: 거리 계산       → 더 먼 쪽
+    //   없음:                  → CENTER
     //
-    //  diff < SMALL_TURN_DIFF_MM(200) → CENTER  (차이 작으면 직진)
-    //  diff 200 ~ 500                 → SMALL
-    //  diff > BIG_TURN_DIFF_MM(500)   → BIG
-    //
-    //  히스테리시스:
-    //  BIG   → SMALL : diff < SMALL_TURN_DIFF_MM(200) 이 되어야 내려감
-    //                  (200~500 구간에서는 BIG 유지)
+    // [Step 2] 각도 크기 결정 (얼마나 꺾을지)
+    //   warning=1 → 무조건 BIG
+    //   warning=0 → diff 계산으로 BIG/SMALL/CENTER (히스테리시스 적용)
 
     localparam DIR_CHANGE_COUNT = CLK_FREQ / DIR_CHANGE_FREQUENCY;
 
@@ -74,56 +74,102 @@ module left_right_comparator #(
     assign diff        = left_closer ? (right_min_distance - left_min_distance)
                                      : (left_min_distance  - right_min_distance);
 
-    // 현재 방향 상태
+    // ===== over 신호 조합 =====
+    wire only_left_over = is_left_over & ~is_right_over;
+    wire only_right_over = is_right_over & ~is_left_over;
+
+    // ===== 현재 방향 상태 (히스테리시스용) =====
     wire is_right_big = (c_direction_degree == `TURN_RIGHT_BIG);
     wire is_left_big = (c_direction_degree == `TURN_LEFT_BIG);
 
-    // ===== 방향 판단 =====
+    // ===== Step 1: 방향 결정 (1=오른쪽, 0=왼쪽) =====
+    // 방향만 결정하고, 각도 크기는 Step 2에서 결정
+    reg  turn_right;  // 1: 오른쪽, 0: 왼쪽
+    reg  do_turn;  // 1: 회전 필요, 0: CENTER
+
+    always @(*) begin
+        turn_right = 1'b0;
+        do_turn    = 1'b1;
+
+        // 1순위: 오른쪽만 열림 → 오른쪽
+        if (only_right_over) begin
+            turn_right = 1'b1;
+            do_turn    = 1'b1;
+
+            // 2순위: 왼쪽만 열림 → 왼쪽
+        end else if (only_left_over) begin
+            turn_right = 1'b0;
+            do_turn    = 1'b1;
+
+            // 3순위: 양쪽 다 충분히 멀리 → CENTER
+        end else if (left_min_distance  > TURN_THRESHOLD_MM &&
+                     right_min_distance > TURN_THRESHOLD_MM) begin
+            do_turn = 1'b0;
+
+            // 4순위: 차이 작으면 → CENTER (warning 없을 때만 적용, Step2에서 처리)
+            // 5순위: 거리 계산 → 더 먼 쪽
+        end else begin
+            turn_right = left_closer;   // 왼쪽이 가까우면 오른쪽으로
+            do_turn = 1'b1;
+        end
+    end
+
+    // ===== Step 2: 각도 크기 결정 =====
     always @(*) begin
         n_direction_degree = c_direction_degree;
 
-        // ===== 1순위: warning → 무조건 BIG으로 긴급 회피 =====
-        if (warning_signal) begin
-            if (left_closer) begin
+        if (!do_turn) begin
+            // 회전 불필요 → CENTER
+            n_direction_degree = `CENTER;
+
+        end else if (warning_signal) begin
+            // warning=1 → 무조건 BIG
+            if (turn_right) begin
                 n_direction_degree = `TURN_RIGHT_BIG;
             end else begin
                 n_direction_degree = `TURN_LEFT_BIG;
             end
 
-            // ===== 2순위: 양쪽 다 충분히 멀리 → CENTER =====
-        end else if (left_min_distance  > TURN_THRESHOLD_MM &&
-                     right_min_distance > TURN_THRESHOLD_MM) begin
-            n_direction_degree = `CENTER;
-
-            // ===== 3순위: 차이가 작으면 → CENTER =====
-        end else if (diff < SMALL_TURN_DIFF_MM) begin
-            n_direction_degree = `CENTER;
-
-            // ===== 4순위: 오른쪽이 더 가까움 → 왼쪽으로 회피 =====
-        end else if (!left_closer) begin
-            if (is_left_big) begin
-                // 현재 LEFT_BIG → SMALL_DIFF 미만이 되어야 내려감 (히스테리시스)
-                // diff >= SMALL_TURN_DIFF_MM 이므로 여기선 BIG 유지
-                n_direction_degree = `TURN_LEFT_BIG;
-            end else begin
-                if (diff > BIG_TURN_DIFF_MM) begin
-                    n_direction_degree = `TURN_LEFT_BIG;
-                end else begin
-                    n_direction_degree = `TURN_LEFT_SMALL;
-                end
-            end
-
-            // ===== 5순위: 왼쪽이 더 가까움 → 오른쪽으로 회피 =====
         end else begin
-            if (is_right_big) begin
-                // 현재 RIGHT_BIG → SMALL_DIFF 미만이 되어야 내려감 (히스테리시스)
-                // diff >= SMALL_TURN_DIFF_MM 이므로 여기선 BIG 유지
-                n_direction_degree = `TURN_RIGHT_BIG;
-            end else begin
-                if (diff > BIG_TURN_DIFF_MM) begin
+            // warning=0 → diff 계산으로 BIG/SMALL/CENTER
+            if (diff < SMALL_TURN_DIFF_MM) begin
+                // 차이 작으면 CENTER (only_over 아닐 때만 적용됨)
+                // only_over 이면 do_turn=1이고 diff는 무의미하므로 BIG으로 감
+                if (only_right_over || only_left_over) begin
+                    // over 신호 있으면 diff 무시하고 BIG
+                    if (turn_right) begin
+                        n_direction_degree = `TURN_RIGHT_BIG;
+                    end else begin
+                        n_direction_degree = `TURN_LEFT_BIG;
+                    end
+                end else begin
+                    n_direction_degree = `CENTER;
+                end
+
+            end else if (turn_right) begin
+                // 오른쪽으로 꺾기
+                if (is_right_big) begin
+                    // 히스테리시스: BIG 유지
                     n_direction_degree = `TURN_RIGHT_BIG;
                 end else begin
-                    n_direction_degree = `TURN_RIGHT_SMALL;
+                    if (diff > BIG_TURN_DIFF_MM) begin
+                        n_direction_degree = `TURN_RIGHT_BIG;
+                    end else begin
+                        n_direction_degree = `TURN_RIGHT_SMALL;
+                    end
+                end
+
+            end else begin
+                // 왼쪽으로 꺾기
+                if (is_left_big) begin
+                    // 히스테리시스: BIG 유지
+                    n_direction_degree = `TURN_LEFT_BIG;
+                end else begin
+                    if (diff > BIG_TURN_DIFF_MM) begin
+                        n_direction_degree = `TURN_LEFT_BIG;
+                    end else begin
+                        n_direction_degree = `TURN_LEFT_SMALL;
+                    end
                 end
             end
         end
