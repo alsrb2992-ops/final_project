@@ -64,7 +64,7 @@ module collision_detector #(
     // = 625 × 55 / 360 = 95
 
     // 신뢰 개수: 범위 내 포인트의 20%
-    localparam TRUST_COUNT = POINTS_IN_RANGE / 20;
+    localparam TRUST_COUNT = POINTS_IN_RANGE / 15;
     // = 95 / 10 = 9
 
     // ===== 각도 영역 판단 =====

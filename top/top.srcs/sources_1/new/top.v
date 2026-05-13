@@ -3,7 +3,7 @@
 module top #(
     parameter CLK_FREQ = 125_000_000,
     parameter BAUD_RATE = 128_000,  // uart baud_rate
-    parameter FRONT_ANGLE_DEG       = 9'd30,                // lidar 0도 기준으로 부터 양방향으로 전방이라 인식하는 각도
+    parameter FRONT_ANGLE_DEG       = 9'd15,                // lidar 0도 기준으로 부터 양방향으로 전방이라 인식하는 각도
     parameter FRONT_SIDE_1_START_ANGLE_DEG = 9'd43,
     parameter FRONT_SIDE_1_END_ANGLE_DEG = 9'd47,
     parameter FRONT_SIDE_2_START_ANGLE_DEG = 9'd313,
