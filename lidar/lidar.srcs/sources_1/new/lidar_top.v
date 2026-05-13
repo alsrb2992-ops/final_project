@@ -22,6 +22,7 @@ module lidar_top #(
     parameter BRAKE_DIST_MM                = 14'd300,
     parameter SIDE_BRAKE_DIST_MM           = 14'd400,
     parameter WARN_DIST_MM                 = 14'd600,
+    parameter SIDE_DIST_MM                 = 14'd300,
     parameter COUNT_DIST_MM                = 14'd500,
     parameter HYSTERESIS_MM                = 14'd100,
     parameter HOLD_MS                      = 32'd200,
@@ -79,7 +80,6 @@ module lidar_top #(
     wire        round_done_sig;
 
     wire [ 2:0] direction_degree;
-
 
     wire        is_left_over;
     wire        is_right_over;
@@ -224,6 +224,7 @@ module lidar_top #(
         .BRAKE_DIST_MM               (BRAKE_DIST_MM),
         .SIDE_BRAKE_DIST_MM          (SIDE_BRAKE_DIST_MM),
         .WARN_DIST_MM                (WARN_DIST_MM),
+        .SIDE_DIST_MM                 (SIDE_DIST_MM),
         .COUNT_DIST_MM               (COUNT_DIST_MM),
         .HYSTERESIS_MM               (HYSTERESIS_MM)
     ) u_collision (

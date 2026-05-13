@@ -16,6 +16,7 @@ module top #(
     parameter BRAKE_DIST_MM         = 14'd300,              // 브레이크 해야하는 인식 거리
     parameter SIDE_BRAKE_DIST_MM = 14'd250,
     parameter WARN_DIST_MM = 14'd600,  // warning 을 알려주는 거리
+    parameter SIDE_DIST_MM                 = 14'd300,
     parameter COUNT_DIST_MM = 14'd900,
     parameter HOLD_MS = 32'd400,  // brake 및 warning 유지 시간
     parameter SIDE_HOLD_MS = 32'd100,  // side warning 유지 시간

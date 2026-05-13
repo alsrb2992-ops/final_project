@@ -39,7 +39,7 @@ module collision_detector #(
     output wire        is_right_over,
 
     output wire brake_signal,
-    output reg warning_signal,
+    output reg  warning_signal,
     output wire side_warning_signal,
     output wire [13:0] left_min_distance,
     output wire [13:0] right_min_distance
