@@ -17,14 +17,14 @@ module top #(
     parameter SIDE_BRAKE_DIST_MM = 14'd250,
     parameter WARN_DIST_MM = 14'd600,  // warning 을 알려주는 거리
     parameter COUNT_DIST_MM = 14'd900,
-    parameter HOLD_MS = 32'd200,  // brake 및 warning 유지 시간
+    parameter HOLD_MS = 32'd400,  // brake 및 warning 유지 시간
     parameter SIDE_HOLD_MS = 32'd100,  // side warning 유지 시간
     parameter TURN_THRESHOLD_MM = 14'd900,  // 좌우, 최소 인식 거리
     parameter BIG_TURN_DIFF_MM      = 14'd500,       // 좌우 차이에 의한 크게 꺾는 방향 조정 수치        
     parameter SMALL_TURN_DIFF_MM    = 14'd200,       // 좌우 차이에 의한 작게 꺾는 방향 조정 수치 
     parameter MAX_CHANGE = 4,  //  20ms 마다 바뀌는 방향 수치
     parameter MAX_DECEL_PER_CYCLE   = 700  ,                // 한번에 바뀔 수 있는 dc 수치
-    parameter DIR_CHANGE_FREQUENCY  = 50_000             // 좌우 거리 유지하는 시간
+    parameter DIR_CHANGE_FREQUENCY = 10  // 좌우 거리 유지하는 시간
 ) (
     input  wire       sysclk,
     input  wire       reset_n,
