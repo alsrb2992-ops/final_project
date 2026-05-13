@@ -90,19 +90,14 @@ module left_right_comparator #(
 
         // ===== 1순위: warning → 무조건 BIG으로 긴급 회피 =====
         if (warning_signal) begin
-            if (left_closer) begin
+            if (left_closer | only_right_over) begin
                 n_direction_degree = `TURN_RIGHT_BIG;
             end else begin
                 n_direction_degree = `TURN_LEFT_BIG;
             end
 
             // ===== 2순위: 양쪽 다 충분히 멀리 → CENTER =====
-        end else if (only_left_over) begin
 
-            n_direction_degree = `TURN_LEFT_BIG;
-        end else if (only_right_over) begin
-
-            n_direction_degree = `TURN_RIGHT_BIG;
         end else if (left_min_distance  > TURN_THRESHOLD_MM &&
                      right_min_distance > TURN_THRESHOLD_MM) begin
             n_direction_degree = `CENTER;
@@ -112,7 +107,7 @@ module left_right_comparator #(
             n_direction_degree = `CENTER;
 
             // ===== 4순위: 오른쪽이 더 가까움 → 왼쪽으로 회피 =====
-        end else if (!left_closer) begin
+        end else if (!left_closer | only_left_over) begin
             if (is_left_big) begin
                 // 현재 LEFT_BIG → SMALL_DIFF 미만이 되어야 내려감 (히스테리시스)
                 // diff >= SMALL_TURN_DIFF_MM 이므로 여기선 BIG 유지

@@ -4,10 +4,10 @@ module top #(
     parameter CLK_FREQ = 125_000_000,
     parameter BAUD_RATE = 128_000,  // uart baud_rate
     parameter FRONT_ANGLE_DEG       = 9'd30,                // lidar 0도 기준으로 부터 양방향으로 전방이라 인식하는 각도
-    parameter FRONT_SIDE_1_START_ANGLE_DEG = 9'd35,
-    parameter FRONT_SIDE_1_END_ANGLE_DEG = 9'd55,
-    parameter FRONT_SIDE_2_START_ANGLE_DEG = 9'd305,
-    parameter FRONT_SIDE_2_END_ANGLE_DEG = 9'd325,
+    parameter FRONT_SIDE_1_START_ANGLE_DEG = 9'd43,
+    parameter FRONT_SIDE_1_END_ANGLE_DEG = 9'd47,
+    parameter FRONT_SIDE_2_START_ANGLE_DEG = 9'd313,
+    parameter FRONT_SIDE_2_END_ANGLE_DEG = 9'd317,
     parameter BEHIND_ANGLE_DEG           = 9'd40,                // lidar 180도 기준으로 부터 양방향으로 후방이라 인식하는 각도
     parameter RIGHT_START_ANGLE_DEG = 9'd45,  // 오른쪽 시작 각도
     parameter RIGHT_END_ANGLE_DEG = 9'd100,  // 오른쪽 끝 각도

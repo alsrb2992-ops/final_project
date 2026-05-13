@@ -41,6 +41,9 @@ module command_decoder (
                         `TURN_RIGHT_SMALL, `TURN_RIGHT_BIG: begin
                             car_control <= `RC_BACKWARD_LEFT;
                         end
+                        default: begin
+                            car_control <= `RC_BACKWARD_RIGHT;
+                        end
                     endcase
                 end else begin
                     case (direction_degree)
@@ -58,6 +61,9 @@ module command_decoder (
                         end
                         `TURN_LEFT_SMALL: begin
                             car_control <= `RC_TURN_LEFT_SMALL;
+                        end
+                        default: begin
+                            car_control <= `RC_FORWARD;
                         end
                     endcase
                 end
