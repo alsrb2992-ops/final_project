@@ -24,7 +24,7 @@ module top #(
     parameter SMALL_TURN_DIFF_MM    = 14'd200,       // 좌우 차이에 의한 작게 꺾는 방향 조정 수치 
     parameter MAX_CHANGE = 4,  //  20ms 마다 바뀌는 방향 수치
     parameter MAX_DECEL_PER_CYCLE   = 700  ,                // 한번에 바뀔 수 있는 dc 수치
-    parameter DIR_CHANGE_FREQUENCY  = 250_000             // 좌우 거리 유지하는 시간
+    parameter DIR_CHANGE_FREQUENCY  = 50_000             // 좌우 거리 유지하는 시간
 ) (
     input  wire       sysclk,
     input  wire       reset_n,
