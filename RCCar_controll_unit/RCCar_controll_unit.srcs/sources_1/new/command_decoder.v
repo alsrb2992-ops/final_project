@@ -39,7 +39,10 @@ module command_decoder (
                             car_control <= `RC_BACKWARD_RIGHT;
                         end
                         `TURN_RIGHT_SMALL, `TURN_RIGHT_BIG: begin
-                            car_control = `RC_BACKWARD_LEFT;
+                            car_control <= `RC_BACKWARD_LEFT;
+                        end
+                        default: begin
+                            car_control <= `RC_BACKWARD_RIGHT;
                         end
                     endcase
                 end else begin
@@ -58,6 +61,9 @@ module command_decoder (
                         end
                         `TURN_LEFT_SMALL: begin
                             car_control <= `RC_TURN_LEFT_SMALL;
+                        end
+                        default: begin
+                            car_control <= `RC_FORWARD;
                         end
                     endcase
                 end
